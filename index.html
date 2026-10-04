@@ -974,14 +974,14 @@
                 return;
             }
 
-            // Check existing attempt count and lock status for this username
+            // Attempt & Lockout storage keys
             const attemptsKey = `bayaniwatch_attempts_${username.toLowerCase()}`;
             const lockKey = `bayaniwatch_lockuntil_${username.toLowerCase()}`;
 
             const lockTime = localStorage.getItem(lockKey);
             const now = Date.now();
 
-            // Check if user is currently locked out (30-second cooldown)
+            // Check 30-second cooldown status
             if (lockTime && now < parseInt(lockTime)) {
                 const secondsLeft = Math.ceil((parseInt(lockTime) - now) / 1000);
                 showAlert(`ACCOUNT LOCKED: Too many failed attempts. Try again in ${secondsLeft}s.`, 'error');
@@ -991,16 +991,16 @@
             setLoading(true);
 
             try {
-                // Fetch user record from Supabase
+                // Safe query using .maybeSingle() to prevent Supabase 406 REST errors
                 const { data: user, error } = await supabase
                     .from('users')
                     .select('*')
                     .eq('username', username)
-                    .single();
+                    .maybeSingle();
 
                 let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
 
-                // Invalid user or incorrect password scenario
+                // If user doesn't exist OR password doesn't match
                 if (error || !user || !(user.password_hash === password || user.password === password)) {
                     failedCount += 1;
                     localStorage.setItem(attemptsKey, failedCount);
@@ -1008,11 +1008,11 @@
                     if (failedCount >= 3) {
                         const lockDuration = 30 * 1000; // 30-second lockout penalty
                         localStorage.setItem(lockKey, (now + lockDuration).toString());
-                        localStorage.removeItem(attemptsKey); // Reset attempt counter after lockout applies
+                        localStorage.removeItem(attemptsKey);
 
                         showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account temporarily locked for 30s.', 'error');
 
-                        // Audit Trail: Record Lockdown trigger in Supabase
+                        // Audit Trail Log in Supabase
                         await supabase.from('log_trails').insert([
                             {
                                 user_id: user ? user.user_id : null,
@@ -1029,15 +1029,14 @@
                     return;
                 }
 
-                // Check account status in Supabase database
+                // Check disabled status
                 if (user.status === 'inactive' || user.status === 'disabled') {
                     showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
                     setLoading(false);
                     return;
                 }
 
-                // --- LOGIN SUCCESSFUL ---
-                // Reset attempt trackers upon correct password
+                // SUCCESSFUL LOGIN
                 localStorage.removeItem(attemptsKey);
                 localStorage.removeItem(lockKey);
 
@@ -1053,7 +1052,6 @@
 
                 localStorage.setItem('bayaniwatch_user', JSON.stringify(sessionUser));
 
-                // Log successful login to audit trail
                 await supabase.from('log_trails').insert([
                     {
                         user_id: user.user_id,
