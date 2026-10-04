@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BAYANIWATCH Mobile - Brgy. Danhug</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet GIS Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Supabase JS Library CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Supabase Client Initialization -->
+    <script>
+      const SUPABASE_URL = 'https://ydjylwtkukqxdvrrfaul.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkanlsd3RrdWtxeGR2cnJmYXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk2NDIsImV4cCI6MjEwNjYzNTY0Mn0.vYw5AXyAJJBUZLQQuaaktTRad8EhtTl6Qdc6t5RuF24';
+
+      // Global Supabase client instance
+      window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    
+    <style>
+      .leaflet-control-attribution,
+      .leaflet-control-attribution a {
+        pointer-events: none !important;
+        cursor: default !important;
+      }
+    </style>
+
+    <!-- Custom Theme Palette -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#0F2C59',       // Primary - Governance & Security
+                        skyblue: '#1E88E5',    // Secondary Accent - Digital Clarity
+                        safetygreen: '#2E7D32',// Status - Resolved / Active
+                        alertamber: '#FFB300', // Status - Pending / Warning
+                        alertred: '#D32F2F',   // Status - Emergency / Danger
+                        slatewhite: '#F8FAFC'  // Neutral Base
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b192e;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 1rem;
+            z-index: 1;
+        }
+
+        @keyframes pulse-sos {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+        }
+        .animate-sos-alert {
+            animation: pulse-sos 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center sm:p-4">
+
+    <!-- Mobile Screen Frame Container -->
+    <div class="w-full max-w-sm sm:max-w-xs md:max-w-sm h-screen sm:h-[760px] bg-white sm:rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col">
+        
+        <!-- Status Bar -->
+        <div class="bg-navy text-slatewhite text-[11px] px-6 pt-3 pb-1 flex justify-between items-center font-medium z-30 shrink-0">
+            <span id="currentTimeDisplay">09:41</span>
+            <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-signal"></i>
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-battery-full text-xs text-safetygreen"></i>
+            </div>
+        </div>
+
+        <!-- In-App Toast Notification Banner -->
+        <div id="appToast" class="hidden absolute top-12 left-4 right-4 bg-navy text-white p-3 rounded-2xl shadow-xl border border-skyblue/30 flex items-center gap-3 z-50 transition-all duration-300">
+            <div id="toastIconContainer" class="w-7 h-7 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-xs">
+                <i id="toastIcon" class="fa-solid fa-bell"></i>
+            </div>
+            <div class="flex-1">
+                <h5 id="toastTitle" class="text-xs font-bold leading-tight">Notification</h5>
+                <p id="toastMessage" class="text-[10px] text-slate-300 leading-tight mt-0.5">Message body...</p>
+            </div>
+        </div>
+
+        <!-- Scrollable Dynamic Screen Body -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar relative flex flex-col pointer-events-auto">
+
+            <!-- 1. LOGIN SCREEN -->
+            <div id="loginScreen" class="flex-1 flex flex-col justify-between p-6">
+                <div class="text-center mt-4">
+                    <div class="w-16 h-16 bg-navy rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-navy/40 text-slatewhite border-2 border-skyblue/30 relative">
+                        <i class="fa-solid fa-shield-halved text-2xl text-skyblue"></i>
+                        <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-safetygreen border-2 border-white rounded-full"></span>
+                    </div>
+                    <h1 class="text-xl font-black text-navy tracking-tight mt-3">BAYANIWATCH</h1>
+                    <p class="text-[11px] text-slate-500 font-medium">Digital Incident Log & Incident Mapper</p>
+                    <div class="mt-1.5 inline-flex items-center gap-1.5 bg-navy/10 px-2.5 py-0.5 rounded-full">
+                        <i class="fa-solid fa-location-dot text-[9px] text-navy"></i>
+                        <span class="text-navy text-[9px] font-bold uppercase tracking-wider">Brgy. Danhug</span>
+                    </div>
+                </div>
+
+                <div id="alertMessage" class="hidden my-2 p-2.5 rounded-xl text-xs text-center font-bold transition-all"></div>
+
+                <form id="loginForm" class="space-y-3.5 my-auto" onsubmit="handleLogin(event)">
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase tracking-wider mb-1">Username</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user-shield absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                            <input type="text" id="username" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-skyblue text-xs text-slate-800 shadow-sm transition" placeholder="Enter username">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase tracking-wider mb-1">Password</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-key absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+                            <input type="password" id="password" class="w-full pl-9 pr-10 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-skyblue text-xs text-slate-800 shadow-sm transition" placeholder="Enter password">
+                            <button type="button" onclick="togglePasswordVisibility('password', 'eyeIcon')" class="absolute right-3.5 top-2.5 text-slate-400 hover:text-navy">
+                                <i id="eyeIcon" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="w-full bg-navy hover:bg-navy/90 active:scale-[0.98] text-slatewhite font-bold py-3 rounded-xl transition duration-150 shadow-lg shadow-navy/20 text-xs flex justify-center items-center mt-2">
+                        <span id="btnText">SIGN IN</span>
+                        <span id="btnSpinner" class="hidden flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch fa-spin text-skyblue"></i> Authenticating...
+                        </span>
+                    </button>
+                </form>
+
+                <div class="text-center pt-3 border-t border-slate-200/80">
+                    <p class="text-[11px] text-slate-500 font-medium">Don't have an account?</p>
+                    <button type="button" onclick="showRegisterScreen()" class="text-xs font-bold text-skyblue hover:underline mt-0.5 cursor-pointer relative z-10">
+                        Create New Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. REGISTER SCREEN -->
+            <div id="registerScreen" class="hidden flex-1 flex flex-col justify-between p-6">
+                <div class="text-center mt-1">
+                    <h2 class="text-base font-black text-navy tracking-tight">Resident Registration</h2>
+                    <p class="text-[10px] text-slate-500">Register account for Brgy. Danhug Portal</p>
+                </div>
+
+                <div id="regAlertMessage" class="hidden my-1 p-2 rounded-xl text-[11px] text-center font-bold transition-all"></div>
+
+                <form id="registerForm" class="space-y-2 my-auto" onsubmit="handleRegister(event)">
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Full Name</label>
+                        <input type="text" id="regFullName" required class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="e.g. Juan Dela Cruz">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Username</label>
+                        <input type="text" id="regUsername" required class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="Choose username">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Email (Optional)</label>
+                        <input type="email" id="regEmail" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="juan@example.com">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Role Type</label>
+                        <select id="regRole" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium">
+                            <option value="resident">Local Resident</option>
+                            <option value="tanod">Barangay Tanod</option>
+                            <option value="admin">Barangay Admin</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Password</label>
+                        <div class="relative">
+                            <input type="password" id="regPassword" required class="w-full pl-2.5 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="Create password">
+                            <button type="button" onclick="togglePasswordVisibility('regPassword', 'regEyeIcon')" class="absolute right-2.5 top-1.5 text-slate-400">
+                                <i id="regEyeIcon" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Confirm Password</label>
+                        <div class="relative">
+                            <input type="password" id="regConfirmPassword" required class="w-full pl-2.5 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="Re-enter password">
+                            <button type="button" onclick="togglePasswordVisibility('regConfirmPassword', 'regConfirmEyeIcon')" class="absolute right-2.5 top-1.5 text-slate-400">
+                                <i id="regConfirmEyeIcon" class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="regBtn" class="w-full bg-navy hover:bg-navy/90 text-white font-bold py-2 rounded-xl text-xs transition shadow mt-1">
+                        REGISTER ACCOUNT
+                    </button>
+                </form>
+
+                <div class="text-center pt-1 border-t border-slate-200">
+                    <p class="text-[10px] text-slate-500">Already registered?</p>
+                    <button type="button" onclick="showLoginScreen()" class="text-xs font-bold text-skyblue hover:underline">
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. HOME DASHBOARD TAB -->
+            <div id="homeTab" class="hidden flex-1 flex flex-col bg-slatewhite">
+                <div class="bg-navy p-4 text-slatewhite shadow-md rounded-b-2xl border-b-2 border-skyblue sticky top-0 z-20">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-[9px] text-skyblue uppercase tracking-wider font-extrabold">BAYANIWATCH MOBILE</p>
+                            <h2 class="text-sm font-bold flex items-center gap-1.5" id="userDisplayName">
+                                Loading Profile...
+                            </h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchTab('notifications')" class="w-8 h-8 bg-white/10 hover:bg-white/20 text-slatewhite rounded-full flex items-center justify-center relative">
+                                <i class="fa-solid fa-bell text-xs"></i>
+                                <span class="absolute top-1 right-1 w-2 h-2 bg-alertamber rounded-full"></span>
+                            </button>
+                            <button onclick="openLogoutModal()" class="w-8 h-8 bg-white/10 hover:bg-alertred active:scale-95 text-slatewhite rounded-full flex items-center justify-center transition">
+                                <i class="fa-solid fa-power-off text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 space-y-4 flex-1">
+                    <!-- SOS Warning Banner -->
+                    <div id="sosWarningBanner" class="hidden bg-alertred border-2 border-red-700 rounded-2xl p-3.5 text-white shadow-lg animate-sos-alert">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 bg-white text-alertred rounded-xl flex items-center justify-center font-black text-lg shrink-0 shadow">
+                                <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="text-xs font-black tracking-wider uppercase">CRITICAL SOS DISTRESS ALERT!</h4>
+                                    <span id="sosTime" class="text-[9px] bg-red-900/60 px-1.5 py-0.5 rounded font-mono">JUST NOW</span>
+                                </div>
+                                
+                                <p id="sosSender" class="text-[11px] font-bold mt-1 text-red-100">Resident: Loading...</p>
+                                
+                                <div id="sosMessage" class="text-[10px] bg-red-950/50 p-2 rounded-lg my-1.5 border border-red-500/30 leading-snug">
+                                    Emergency details loading...
+                                </div>
+                                
+                                <p id="sosAddress" class="text-[9px] text-red-200 mb-2">
+                                    <i class="fa-solid fa-location-dot text-white mr-1"></i> Address details loading...
+                                </p>
+
+                                <div class="flex gap-2">
+                                    <button onclick="dispatchResponder()" class="bg-white text-alertred hover:bg-red-50 text-[10px] font-black px-3 py-1.5 rounded-lg shadow active:scale-95 uppercase flex items-center gap-1">
+                                        <i class="fa-solid fa-person-running"></i> Dispatch Tanod
+                                    </button>
+                                    <button onclick="locateSosOnMap()" class="bg-red-900/90 hover:bg-red-950 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                                        <i class="fa-solid fa-map-pin"></i> View Map Pin
+                                    </button>
+                                    <button onclick="dismissSosBanner()" class="bg-red-950/60 text-red-200 text-[10px] px-2 py-1.5 rounded-lg hover:text-white">
+                                        Dismiss
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resident SOS Trigger -->
+                    <div id="sosTriggerCard" class="bg-red-50 border border-red-200 rounded-2xl p-3.5 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-alertred text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-md animate-pulse">
+                                <i class="fa-solid fa-bell-concierge"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-red-950">Emergency SOS Request</h4>
+                                <p class="text-[10px] text-red-600 font-medium">Broadcast alert to Officers</p>
+                            </div>
+                        </div>
+                        <button onclick="triggerEmergencySOS()" class="bg-alertred hover:bg-red-700 active:scale-95 text-white text-[10px] font-black px-3.5 py-2 rounded-xl transition shadow-md tracking-wider uppercase">
+                            SEND SOS
+                        </button>
+                    </div>
+
+                    <!-- Admin Command Panel -->
+                    <div id="adminOverviewPanel" class="hidden bg-navy/5 border border-navy/20 rounded-2xl p-3.5 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-xs font-black text-navy uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-gear text-skyblue"></i> Admin Command Panel
+                            </h4>
+                            <span class="text-[9px] bg-navy text-white px-2 py-0.5 rounded-full font-bold">CONTROL CENTER</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 text-center pt-1">
+                            <div class="bg-white p-2 rounded-xl border border-slate-200">
+                                <span class="text-[9px] font-bold text-slate-400 block uppercase">Pending</span>
+                                <span id="adminPendingCount" class="text-xs font-black text-alertamber">0</span>
+                            </div>
+                            <div class="bg-white p-2 rounded-xl border border-slate-200">
+                                <span class="text-[9px] font-bold text-slate-400 block uppercase">In Progress</span>
+                                <span id="adminProgressCount" class="text-xs font-black text-skyblue">0</span>
+                            </div>
+                            <div class="bg-white p-2 rounded-xl border border-slate-200">
+                                <span class="text-[9px] font-bold text-slate-400 block uppercase">Resolved</span>
+                                <span id="adminResolvedCount" class="text-xs font-black text-safetygreen">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Audit Log Trails -->
+                    <div id="logTrailsSection" class="hidden bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wide">
+                                <i class="fa-solid fa-list-check text-skyblue mr-1"></i> System Audit Log Trails
+                            </h4>
+                            <button onclick="fetchLogTrails()" class="text-[10px] text-skyblue font-bold hover:underline">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                            </button>
+                        </div>
+                        <div id="logTrailsList" class="space-y-1.5 max-h-48 overflow-y-auto text-[10px]">
+                            <p class="text-slate-400 text-center py-2">Loading audit logs...</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button onclick="openCreateIncidentModal()" class="p-3 bg-navy text-white rounded-xl shadow-sm text-left flex items-center gap-3 active:scale-95 transition">
+                            <div class="w-8 h-8 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-plus-circle"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-bold">Log Incident</h5>
+                                <p class="text-[9px] text-slate-300">File new blotter</p>
+                            </div>
+                        </button>
+                        <button onclick="switchTab('map')" class="p-3 bg-white border border-slate-200 text-navy rounded-xl shadow-sm text-left flex items-center gap-3 active:scale-95 transition">
+                            <div class="w-8 h-8 bg-navy/10 text-navy rounded-lg flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-bold">GIS Mapper</h5>
+                                <p class="text-[9px] text-slate-500">View map pins</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Total Incidents</p>
+                            <h3 id="incidentCounter" class="text-xl font-black text-navy mt-0.5">--</h3>
+                        </div>
+                        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">System Status</p>
+                            <h3 class="text-xs font-bold text-safetygreen mt-1.5 flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 bg-safetygreen rounded-full animate-pulse"></span> Online Active
+                            </h3>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2.5">
+                            <h3 class="text-xs font-bold text-navy uppercase tracking-wide">Recent Incident Logs</h3>
+                            <button onclick="fetchIncidents()" class="text-[10px] text-skyblue font-bold hover:underline">
+                                <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                            </button>
+                        </div>
+                        
+                        <div class="flex gap-2 mb-3">
+                            <div class="relative flex-1">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-[10px] text-slate-400"></i>
+                                <input type="text" id="searchInput" onkeyup="filterIncidents()" placeholder="Search incidents..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-skyblue">
+                            </div>
+                            <select id="statusFilter" onchange="filterIncidents()" class="bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-[10px] font-bold text-slate-600 focus:outline-none">
+                                <option value="ALL">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                        </div>
+
+                        <div id="incidentsList" class="space-y-2.5">
+                            <p class="text-xs text-slate-400 text-center py-6">Loading incident records...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. GIS MAPPER TAB -->
+            <div id="mapTab" class="hidden flex-1 flex flex-col bg-slatewhite">
+                <div class="bg-navy p-3 text-slatewhite shadow-md flex justify-between items-center z-20">
+                    <h3 class="text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-location-dot text-skyblue"></i> Brgy. Danhug Incident Mapper
+                    </h3>
+                    <button onclick="recenterMap()" class="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] font-bold">
+                        Center Map
+                    </button>
+                </div>
+                <div class="flex-1 p-3 relative">
+                    <div id="leafletMapContainer" class="w-full h-full shadow-inner border border-slate-300"></div>
+                </div>
+            </div>
+
+            <!-- 5. NOTIFICATIONS TAB -->
+            <div id="notificationsTab" class="hidden flex-1 flex flex-col bg-slatewhite">
+                <div class="bg-navy p-4 text-slatewhite shadow-md">
+                    <h3 class="text-xs font-bold uppercase tracking-wider">System Alerts & Notifications</h3>
+                </div>
+                <div class="p-4 space-y-3 flex-1 overflow-y-auto">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex gap-3">
+                        <div class="w-8 h-8 bg-blue-100 text-skyblue rounded-full flex items-center justify-center shrink-0 text-xs">
+                            <i class="fa-solid fa-bell"></i>
+                        </div>
+                        <div>
+                            <h5 class="text-xs font-bold text-navy">System Connection Live</h5>
+                            <p class="text-[10px] text-slate-500 mt-0.5">BAYANIWATCH Digital Blotter System connected to Supabase database.</p>
+                            <span class="text-[9px] text-slate-400 mt-1 block">Just now</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. PROFILE TAB -->
+            <div id="profileTab" class="hidden flex-1 flex flex-col bg-slatewhite">
+                <div class="bg-navy p-6 text-slatewhite text-center rounded-b-3xl relative">
+                    <div class="w-16 h-16 bg-skyblue rounded-full flex items-center justify-center mx-auto text-white text-2xl font-black shadow-lg border-2 border-white">
+                        <span id="profileAvatarChar">U</span>
+                    </div>
+                    <h3 id="profileFullName" class="text-sm font-bold mt-2">User Name</h3>
+                    <p id="profileUserRole" class="text-[10px] text-skyblue font-semibold uppercase">Role</p>
+                </div>
+                <div class="p-4 space-y-3 flex-1">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
+                        <div class="flex justify-between border-b pb-2 text-xs">
+                            <span class="text-slate-400 font-medium">Username</span>
+                            <span id="profileUsername" class="font-bold text-navy">--</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2 text-xs">
+                            <span class="text-slate-400 font-medium">Email</span>
+                            <span id="profileEmail" class="font-bold text-navy">--</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-400 font-medium">Account Status</span>
+                            <span class="text-safetygreen font-bold uppercase">Active</span>
+                        </div>
+                    </div>
+                    <button onclick="openLogoutModal()" class="w-full bg-red-50 text-alertred border border-red-200 font-bold py-2.5 rounded-xl text-xs active:scale-95 transition">
+                        Sign Out Account
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Modal: SOS Request -->
+        <div id="sosInputModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[300px] space-y-2.5">
+                <div class="flex items-center gap-2 border-b pb-2">
+                    <div class="w-7 h-7 bg-alertred text-white rounded-lg flex items-center justify-center font-bold text-xs">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <h3 class="text-xs font-black text-navy uppercase">Emergency SOS Request</h3>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Emergency Category</label>
+                    <select id="sosModalCategory" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 font-medium">
+                        <option value="Medical Emergency">Medical Emergency</option>
+                        <option value="Physical Hazard / Fight">Physical Hazard / Fight</option>
+                        <option value="Fire Alarm">Fire Alarm</option>
+                        <option value="Theft / Intruder">Theft / Intruder</option>
+                        <option value="Urgent Tanod Dispatch">Urgent Tanod Dispatch</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Emergency Details / Notes</label>
+                    <textarea id="sosModalDetails" rows="2" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50" placeholder="e.g., Need immediate assistance at Purok 3 near chapel!"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Pinpoint Emergency Location</label>
+                    <div id="sosMapContainer" style="height: 120px; width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; overflow: hidden;"></div>
+                    <input type="hidden" id="sosLatitude" value="10.8351">
+                    <input type="hidden" id="sosLongitude" value="124.7123">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeSosModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="button" onclick="confirmAndBroadcastSos()" class="w-1/2 bg-alertred text-white py-2 rounded-xl text-xs font-black shadow uppercase">Send SOS</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: In-App Tanod Dispatch -->
+        <div id="dispatchModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[280px] space-y-3">
+                <div class="flex items-center gap-2 border-b pb-2">
+                    <div class="w-8 h-8 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center text-xs font-bold">
+                        <i class="fa-solid fa-person-running"></i>
+                    </div>
+                    <h3 class="text-xs font-black text-navy uppercase">Dispatch Responder</h3>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Select / Enter Responder Unit</label>
+                    <input type="text" id="dispatchUnitInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-skyblue" placeholder="e.g. Tanod Patrol Unit 1" value="Tanod Patrol Unit 1">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeDispatchModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="button" onclick="confirmDispatchSubmit()" class="w-1/2 bg-skyblue text-white py-2 rounded-xl text-xs font-black shadow uppercase">Confirm</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <div id="bottomNav" class="hidden bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center shrink-0 z-30">
+            <button onclick="switchTab('home')" id="navHome" class="flex flex-col items-center text-skyblue text-[10px] font-bold">
+                <i class="fa-solid fa-house text-sm"></i>
+                <span class="mt-0.5">Home</span>
+            </button>
+            <button onclick="switchTab('map')" id="navMap" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold hover:text-navy">
+                <i class="fa-solid fa-map-location-dot text-sm"></i>
+                <span class="mt-0.5">Mapper</span>
+            </button>
+            <button onclick="openCreateIncidentModal()" class="w-10 h-10 bg-navy text-white rounded-full flex items-center justify-center shadow-lg -mt-5 border-2 border-white active:scale-90 transition">
+                <i class="fa-solid fa-plus text-xs"></i>
+            </button>
+            <button onclick="switchTab('notifications')" id="navNotifications" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold hover:text-navy">
+                <i class="fa-solid fa-bell text-sm"></i>
+                <span class="mt-0.5">Alerts</span>
+            </button>
+            <button onclick="switchTab('profile')" id="navProfile" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold hover:text-navy">
+                <i class="fa-solid fa-user text-sm"></i>
+                <span class="mt-0.5">Profile</span>
+            </button>
+        </div>
+
+        <!-- Modal: Log Incident -->
+        <div id="createIncidentModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+            <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 w-full max-h-[95%] overflow-y-auto">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b">
+                    <h3 class="text-xs font-bold text-navy uppercase">Log Digital Incident Report</h3>
+                    <button onclick="closeCreateIncidentModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="createIncidentForm" class="space-y-3" onsubmit="submitNewIncident(event)">
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Title</label>
+                        <input type="text" id="newTitle" required class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Brief summary of incident">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Category</label>
+                        <select id="newCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
+                            <option value="Noise Complaint">Noise Complaint</option>
+                            <option value="Theft">Theft</option>
+                            <option value="Medical Emergency">Medical Emergency</option>
+                            <option value="Fire Incident">Fire Incident</option>
+                            <option value="Public Disturbance">Public Disturbance</option>
+                            <option value="Traffic/Accident">Traffic/Accident</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Description</label>
+                        <textarea id="newDescription" required rows="2" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Detailed report description..."></textarea>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[10px] font-bold text-navy uppercase">Pinpoint Location on Map</label>
+                            <button type="button" onclick="getCurrentLocation()" class="text-[9px] text-skyblue font-bold hover:underline">
+                                <i class="fa-solid fa-crosshairs mr-0.5"></i> Use GPS
+                            </button>
+                        </div>
+                        <div id="pickerMapContainer" class="w-full h-36 rounded-xl border border-slate-300 overflow-hidden mb-2"></div>
+                        <input type="hidden" id="newLatitude" value="10.8351">
+                        <input type="hidden" id="newLongitude" value="124.7123">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Location Address</label>
+                        <input type="text" id="newAddress" required class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Click on map to pinpoint address...">
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" onclick="closeCreateIncidentModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                        <button type="submit" id="submitIncidentBtn" class="w-1/2 bg-navy text-white py-2.5 rounded-xl text-xs font-bold shadow">Submit Log</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal: Logout Confirmation -->
+        <div id="logoutModal" class="hidden absolute inset-0 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-5 w-full max-w-[260px] text-center">
+                <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto mb-3 text-base">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-sm font-bold text-navy mb-1">Confirm Logout</h3>
+                <p class="text-[11px] text-slate-500 mb-4 leading-tight">Are you sure you want to logout/sign out?</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="closeLogoutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition">Cancel</button>
+                    <button onclick="confirmLogout()" class="w-full bg-navy hover:bg-navy/90 text-slatewhite font-bold text-xs py-2 rounded-xl transition shadow-sm">Yes</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Controller -->
+    <script>
+        let currentUser = null;
+        let globalIncidentsData = [];
+        let leafletMap = null;
+        let mapMarkersGroup = null;
+        
+        let sosMap = null;
+        let sosMarker = null;
+
+        let pickerMap = null;
+        let pickerMarker = null;
+
+        // 🔊 Initialize SOS Audio Alarm
+        const sosAudio = new Audio('./alarm.mp3');
+        sosAudio.loop = true;
+
+        // --- IN-APP TOAST UI HELPERS ---
+        function showAppToast(title, message, isEmergency = false) {
+            const toast = document.getElementById('appToast');
+            const toastTitle = document.getElementById('toastTitle');
+            const toastMsg = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+            const iconContainer = document.getElementById('toastIconContainer');
+
+            if (!toast) return;
+
+            toastTitle.innerText = title;
+            toastMsg.innerText = message;
+
+            if (isEmergency) {
+                iconContainer.className = "w-7 h-7 rounded-full bg-red-500/20 text-alertred flex items-center justify-center shrink-0 text-xs";
+                icon.className = "fa-solid fa-triangle-exclamation animate-bounce";
+            } else {
+                iconContainer.className = "w-7 h-7 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-xs";
+                icon.className = "fa-solid fa-circle-check";
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        // --- SOS MAP & DISPATCH FUNCTIONS ---
+        function triggerEmergencySOS() {
+            document.getElementById('sosInputModal').classList.remove('hidden');
+            setTimeout(initSosMap, 300);
+        }
+
+        function closeSosModal() {
+            document.getElementById('sosInputModal').classList.add('hidden');
+        }
+
+        function initSosMap() {
+            const defaultLat = 10.9613;
+            const defaultLng = 124.6483;
+            const container = document.getElementById('sosMapContainer');
+
+            if (!container) return;
+
+            if (!sosMap) {
+                sosMap = L.map('sosMapContainer', {
+                    attributionControl: false
+                }).setView([defaultLat, defaultLng], 15);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18
+                }).addTo(sosMap);
+
+                sosMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(sosMap);
+
+                document.getElementById('sosLatitude').value = defaultLat;
+                document.getElementById('sosLongitude').value = defaultLng;
+
+                sosMap.on('click', function(e) {
+                    const { lat, lng } = e.latlng;
+                    sosMarker.setLatLng([lat, lng]);
+                    document.getElementById('sosLatitude').value = lat.toFixed(8);
+                    document.getElementById('sosLongitude').value = lng.toFixed(8);
+                });
+
+                sosMarker.on('dragend', function(e) {
+                    const { lat, lng } = e.target.getLatLng();
+                    document.getElementById('sosLatitude').value = lat.toFixed(8);
+                    document.getElementById('sosLongitude').value = lng.toFixed(8);
+                });
+            }
+
+            setTimeout(() => {
+                if (sosMap) sosMap.invalidateSize();
+            }, 100);
+        }
+
+        async function confirmAndBroadcastSos() {
+            const category = document.getElementById('sosModalCategory').value;
+            const details = document.getElementById('sosModalDetails').value.trim() || "Resident requires immediate emergency assistance!";
+            const lat = parseFloat(document.getElementById('sosLatitude').value) || 10.9613;
+            const lng = parseFloat(document.getElementById('sosLongitude').value) || 124.6483;
+
+            const sosPayload = {
+                user_id: currentUser ? currentUser.user_id : null,
+                sender: currentUser ? currentUser.full_name : 'Resident User',
+                title: category,
+                description: details,
+                address: `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`,
+                lat: lat,
+                lng: lng,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosPayload));
+            closeSosModal();
+
+            const detailsInput = document.getElementById('sosModalDetails');
+            if (detailsInput) detailsInput.value = '';
+
+            try {
+                const { error } = await supabase
+                    .from('incidents')
+                    .insert([
+                        {
+                            user_id: sosPayload.user_id,
+                            title: `🚨 EMERGENCY SOS: ${category}`,
+                            category: category,
+                            description: details,
+                            location_address: sosPayload.address,
+                            latitude: lat,
+                            longitude: lng,
+                            status: 'Pending'
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                // Step 2 Audit Trail: Log SOS action into log_trails
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: sosPayload.user_id,
+                        username: currentUser ? currentUser.username : 'Resident',
+                        action: `TRIGGERED EMERGENCY SOS: ${category}`
+                    }
+                ]);
+
+                await fetchIncidents();
+                if (typeof fetchLogTrails === 'function') fetchLogTrails();
+
+            } catch (err) {
+                console.error("Supabase SOS insert error:", err);
+            }
+
+            addOfficerNotification(`🚨 CRITICAL SOS: ${category}`, `Resident ${sosPayload.sender} triggered an emergency SOS panic alert.`);
+            checkActiveSos();
+
+            showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted to officers & saved to logs.', true);
+        }
+
+        function checkActiveSos() {
+            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+            const sosBanner = document.getElementById('sosWarningBanner');
+
+            if (!sosBanner) return;
+
+            const isOfficer = currentUser && (currentUser.role === 'admin' || currentUser.role === 'tanod');
+
+            if (activeSos && isOfficer) {
+                const sosData = JSON.parse(activeSos);
+                
+                document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
+                document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
+                document.getElementById('sosAddress').innerText = sosData.address;
+                document.getElementById('sosTime').innerText = sosData.time;
+
+                sosBanner.classList.remove('hidden');
+                sosAudio.play().catch(e => console.log("Audio waiting for user interaction"));
+            } else {
+                sosBanner.classList.add('hidden');
+                sosAudio.pause();
+                sosAudio.currentTime = 0;
+            }
+        }
+
+        function addOfficerNotification(title, message) {
+            const notifTabContainer = document.querySelector('#notificationsTab > div.p-4') || document.querySelector('#notificationsTab .space-y-3');
+            if (!notifTabContainer) return;
+
+            const isOfficer = currentUser && (currentUser.role === 'admin' || currentUser.role === 'tanod');
+            if (!isOfficer) return;
+
+            const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const notifItem = document.createElement('div');
+            notifItem.className = 'bg-white p-3 rounded-xl border border-red-200 shadow-sm flex gap-3 animate-pulse border-l-4 border-l-alertred';
+            notifItem.innerHTML = `
+                <div class="w-8 h-8 bg-red-100 text-alertred rounded-full flex items-center justify-center shrink-0 text-xs">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <h5 class="text-xs font-bold text-navy">${title}</h5>
+                    <p class="text-[10px] text-slate-500 mt-0.5">${message}</p>
+                    <span class="text-[9px] text-slate-400 mt-1 block">${timeNow}</span>
+                </div>
+            `;
+
+            notifTabContainer.prepend(notifItem);
+        }
+
+        function locateSosOnMap() {
+            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+            if (!activeSos) return;
+
+            const sosData = JSON.parse(activeSos);
+
+            switchTab('map');
+
+            setTimeout(() => {
+                if (leafletMap && mapMarkersGroup) {
+                    leafletMap.setView([sosData.lat, sosData.lng], 17);
+
+                    const sosMarker = L.marker([sosData.lat, sosData.lng]).addTo(mapMarkersGroup);
+
+                    sosMarker.bindPopup(`
+                        <div class="p-1 max-w-[200px]">
+                            <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
+                                🚨 SOS EMERGENCY
+                            </span>
+                            <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
+                            <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
+                            <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
+                            <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
+                        </div>
+                    `).openPopup();
+                }
+            }, 300);
+        }
+
+        function dispatchResponder() {
+            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+            if (!activeSos) return;
+            document.getElementById('dispatchModal').classList.remove('hidden');
+        }
+
+        function closeDispatchModal() {
+            document.getElementById('dispatchModal').classList.add('hidden');
+        }
+
+        async function confirmDispatchSubmit() {
+            const unit = document.getElementById('dispatchUnitInput').value.trim() || 'Tanod Patrol Unit 1';
+            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+            const sosData = activeSos ? JSON.parse(activeSos) : null;
+
+            closeDispatchModal();
+            dismissSosBanner();
+
+            if (currentUser) {
+                try {
+                    await supabase.from('log_trails').insert([
+                        {
+                            user_id: currentUser.user_id,
+                            username: currentUser.username,
+                            action: `Dispatched '${unit}' to respond to SOS request`
+                        }
+                    ]);
+                    if (typeof fetchLogTrails === 'function') fetchLogTrails();
+                } catch (err) {
+                    console.error("Failed to log dispatch trail:", err);
+                }
+            }
+
+            showAppToast(
+                '🚨 TANOD DISPATCH CONFIRMED', 
+                `${unit} assigned to respond to ${sosData ? sosData.sender : 'Resident'} at ${sosData ? sosData.address : 'Brgy. Danhug'}`
+            );
+        }
+
+        function dismissSosBanner() {
+            localStorage.removeItem('bayaniwatch_sos_active');
+            document.getElementById('sosWarningBanner').classList.add('hidden');
+        }
+
+        // --- DASHBOARD & SYSTEM UTILITIES ---
+        setInterval(() => {
+            const now = new Date();
+            const timeEl = document.getElementById('currentTimeDisplay');
+            if (timeEl) {
+                timeEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+        }, 1000);
+
+        function showRegisterScreen() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.remove('hidden');
+        }
+
+        function showLoginScreen() {
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById('alertMessage');
+            if (!box) return;
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-safetygreen/10', 'text-safetygreen');
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                box.classList.add('bg-safetygreen/10', 'text-safetygreen');
+            }
+            box.innerText = msg;
+        }
+
+        function showRegAlert(msg, type) {
+            const box = document.getElementById('regAlertMessage');
+            if (!box) return;
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-safetygreen/10', 'text-safetygreen');
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                box.classList.add('bg-safetygreen/10', 'text-safetygreen');
+            }
+            box.innerText = msg;
+        }
+
+        async function handleLogin(e) {
+            if (e) e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                showAlert('Empty username or password.', 'error');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const { data: user, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('username', username)
+                    .single();
+
+                if (error || !user) {
+                    showAlert('Incorrect username or password.', 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                if (user.status === 'inactive' || user.status === 'disabled') {
+                    showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                if (user.password_hash === password || user.password === password) {
+                    showAlert('Successful login.', 'success');
+                    
+                    const sessionUser = {
+                        user_id: user.user_id,
+                        full_name: user.full_name,
+                        username: user.username,
+                        email: user.email,
+                        role: user.role
+                    };
+
+                    localStorage.setItem('bayaniwatch_user', JSON.stringify(sessionUser));
+
+                    // Step 2 Audit Trail: Log login
+                    await supabase.from('log_trails').insert([
+                        {
+                            user_id: user.user_id,
+                            username: user.username,
+                            action: 'Logged into system'
+                        }
+                    ]);
+                    
+                    setTimeout(async () => {
+                        setLoading(false);
+                        await initDashboard(sessionUser);
+                    }, 500);
+                } else {
+                    showAlert('Incorrect username or password.', 'error');
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                showAlert('Error connecting to Supabase.', 'error');
+                setLoading(false);
+            }
+        }
+
+        async function handleRegister(e) {
+            if (e) e.preventDefault();
+            
+            const password = document.getElementById('regPassword').value.trim();
+            const confirmPassword = document.getElementById('regConfirmPassword').value.trim();
+
+            if (password !== confirmPassword) {
+                showRegAlert('Passwords do not match.', 'error');
+                return;
+            }
+
+            const payload = {
+                full_name: document.getElementById('regFullName').value.trim(),
+                username: document.getElementById('regUsername').value.trim(),
+                email: document.getElementById('regEmail').value.trim() || null,
+                role: document.getElementById('regRole').value,
+                password_hash: password
+            };
+
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([payload]);
+
+                if (error) {
+                    showRegAlert('Registration failed: ' + error.message, 'error');
+                    return;
+                }
+
+                showRegAlert('Registration successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    document.getElementById('registerForm').reset();
+                    document.getElementById('regAlertMessage').classList.add('hidden');
+                    showLoginScreen();
+                    document.getElementById('username').value = payload.username;
+                }, 1200);
+
+            } catch (err) {
+                showRegAlert('Connection error with Supabase.', 'error');
+            }
+        }
+
+        function setLoading(isLoading) {
+            document.getElementById('btnText').classList.toggle('hidden', isLoading);
+            document.getElementById('btnSpinner').classList.toggle('hidden', !isLoading);
+            document.getElementById('loginBtn').disabled = isLoading;
+        }
+
+        async function initDashboard(user) {
+            currentUser = user;
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            
+            document.getElementById('userDisplayName').innerText = `${user.full_name} (${user.role.toUpperCase()})`;
+            document.getElementById('profileFullName').innerText = user.full_name;
+            document.getElementById('profileUserRole').innerText = user.role;
+            document.getElementById('profileUsername').innerText = user.username;
+            document.getElementById('profileEmail').innerText = user.email || 'N/A';
+            document.getElementById('profileAvatarChar').innerText = user.full_name.charAt(0);
+
+            const isOfficer = user.role === 'admin' || user.role === 'tanod';
+            if (isOfficer) {
+                document.getElementById('adminOverviewPanel').classList.remove('hidden');
+            } else {
+                document.getElementById('adminOverviewPanel').classList.add('hidden');
+            }
+
+            if (user.role.toLowerCase() === 'admin') {
+                document.getElementById('logTrailsSection').classList.remove('hidden');
+                await fetchLogTrails();
+            } else {
+                document.getElementById('logTrailsSection').classList.add('hidden');
+            }
+
+            switchTab('home');
+            await fetchIncidents();
+            checkActiveSos();
+        }
+
+        async function fetchLogTrails() {
+            const container = document.getElementById('logTrailsList');
+            if (!container || !currentUser) return;
+
+            try {
+                const { data: logs, error } = await supabase
+                    .from('log_trails')
+                    .select('*')
+                    .order('timestamp', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
+
+                if (!logs || logs.length === 0) {
+                    container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs recorded yet.</p>`;
+                    return;
+                }
+
+                container.innerHTML = logs.map(log => `
+                    <div class="text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center my-1">
+                        <div>
+                            <span class="font-bold text-navy">[${log.username || 'System'}]</span>
+                            <span class="text-slate-600 ml-1">${log.action}</span>
+                        </div>
+                        <span class="text-[9px] text-slate-400 shrink-0 ml-2">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}</span>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                console.error("Audit log error:", err);
+                if (container) container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs available.</p>`;
+            }
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['homeTab', 'mapTab', 'notificationsTab', 'profileTab'];
+            tabs.forEach(t => document.getElementById(t).classList.add('hidden'));
+
+            const navs = ['navHome', 'navMap', 'navNotifications', 'navProfile'];
+            navs.forEach(n => {
+                const el = document.getElementById(n);
+                if (el) {
+                    el.classList.remove('text-skyblue');
+                    el.classList.add('text-slate-400');
+                }
+            });
+
+            if (tabName === 'home') {
+                document.getElementById('homeTab').classList.remove('hidden');
+                document.getElementById('navHome').classList.replace('text-slate-400', 'text-skyblue');
+            } else if (tabName === 'map') {
+                document.getElementById('mapTab').classList.remove('hidden');
+                document.getElementById('navMap').classList.replace('text-slate-400', 'text-skyblue');
+                
+                fetchIncidents().then(() => {
+                    setTimeout(initLeafletMap, 200);
+                });
+            } else if (tabName === 'notifications') {
+                document.getElementById('notificationsTab').classList.remove('hidden');
+                document.getElementById('navNotifications').classList.replace('text-slate-400', 'text-skyblue');
+            } else if (tabName === 'profile') {
+                document.getElementById('profileTab').classList.remove('hidden');
+                document.getElementById('navProfile').classList.replace('text-slate-400', 'text-skyblue');
+            }
+        }
+
+        async function fetchIncidents() {
+            const list = document.getElementById('incidentsList');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('incidents')
+                    .select(`
+                        incident_id, title, category, description,
+                        latitude, longitude, location_address, status, reported_at,
+                        users ( full_name )
+                    `)
+                    .order('reported_at', { ascending: false });
+
+                if (error) throw error;
+
+                globalIncidentsData = data.map(inc => ({
+                    ...inc,
+                    reported_by: inc.users ? inc.users.full_name : 'Unknown Resident'
+                }));
+
+                document.getElementById('incidentCounter').innerText = globalIncidentsData.length;
+
+                const pending = globalIncidentsData.filter(i => i.status === 'Pending').length;
+                const progress = globalIncidentsData.filter(i => i.status === 'In Progress').length;
+                const resolved = globalIncidentsData.filter(i => i.status === 'Resolved').length;
+
+                document.getElementById('adminPendingCount').innerText = pending;
+                document.getElementById('adminProgressCount').innerText = progress;
+                document.getElementById('adminResolvedCount').innerText = resolved;
+
+                renderIncidents(globalIncidentsData);
+
+            } catch (err) {
+                console.error('Supabase fetch error:', err);
+                if (list) list.innerHTML = `<p class="text-[10px] text-red-500 text-center py-4">Failed to load reports from Supabase.</p>`;
+            }
+        }
+
+        function renderIncidents(items) {
+            const list = document.getElementById('incidentsList');
+            if (!list) return;
+
+            if (!items || items.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No incidents reported.</p>`;
+                return;
+            }
+
+            const userRole = (currentUser && currentUser.role) ? currentUser.role.toLowerCase() : '';
+            const isAdminOrTanod = userRole === 'admin' || userRole === 'tanod';
+            const isAdmin = userRole === 'admin';
+
+            list.innerHTML = items.map(item => `
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-1.5 hover:border-skyblue transition">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-bold uppercase px-2 py-0.5 bg-skyblue/10 text-skyblue rounded-full">${item.category}</span>
+                        <span class="text-[9px] font-bold ${item.status === 'Resolved' ? 'text-safetygreen' : (item.status === 'In Progress' ? 'text-skyblue' : 'text-alertamber')}">${item.status}</span>
+                    </div>
+                    <h4 class="text-xs font-bold text-navy leading-tight">${item.title}</h4>
+                    <p class="text-[10px] text-slate-500 leading-snug">${item.description}</p>
+                    <div class="flex justify-between items-center mt-1 pt-1.5 border-t border-slate-100 text-[9px] text-slate-400">
+                        <span><i class="fa-solid fa-location-dot text-skyblue mr-1"></i>${item.location_address}</span>
+                        <span>${item.reported_at ? new Date(item.reported_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                    </div>
+
+                    ${isAdminOrTanod ? `
+                        <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
+                            ${item.status !== 'In Progress' && item.status !== 'Resolved' ? `
+                                <button onclick="updateStatus(${item.incident_id}, 'In Progress')" class="flex-1 bg-skyblue/10 text-skyblue hover:bg-skyblue hover:text-white py-1 rounded-lg text-[9px] font-bold transition">
+                                    <i class="fa-solid fa-person-running mr-1"></i> Deploy / Respond
+                                </button>
+                            ` : ''}
+                            ${item.status !== 'Resolved' ? `
+                                <button onclick="updateStatus(${item.incident_id}, 'Resolved')" class="flex-1 bg-emerald-100 text-safetygreen hover:bg-safetygreen hover:text-white py-1 rounded-lg text-[9px] font-bold transition">
+                                    <i class="fa-solid fa-check-circle mr-1"></i> Mark Resolved
+                                </button>
+                            ` : ''}
+                            ${item.status === 'Resolved' && isAdmin ? `
+                                <button onclick="archiveIncident(${item.incident_id})" class="flex-1 bg-slate-100 text-slate-600 hover:bg-alertred hover:text-white py-1 rounded-lg text-[9px] font-bold transition">
+                                    <i class="fa-solid fa-box-archive mr-1"></i> Archive Log
+                                </button>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        async function updateStatus(incidentId, newStatus) {
+            try {
+                const { error } = await supabase
+                    .from('incidents')
+                    .update({ status: newStatus })
+                    .eq('incident_id', incidentId);
+
+                if (error) throw error;
+
+                // Step 2 Audit Trail: Log status update
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Officer',
+                        action: `Updated incident #${incidentId} status to '${newStatus}'`
+                    }
+                ]);
+
+                await fetchIncidents();
+                if (typeof fetchLogTrails === 'function') fetchLogTrails();
+                showAppToast('STATUS UPDATED', `Incident #${incidentId} set to ${newStatus}`);
+            } catch (err) {
+                showAppToast('UPDATE FAILED', err.message, true);
+            }
+        }
+
+        async function archiveIncident(incidentId) {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
+                showAppToast('UNAUTHORIZED', 'Only Barangay Admins can archive resolved incident records.', true);
+                return;
+            }
+
+            try {
+                const { error: deleteError } = await supabase
+                    .from('incidents')
+                    .delete()
+                    .eq('incident_id', incidentId);
+
+                if (deleteError) throw deleteError;
+
+                // Step 2 Audit Trail: Log archive action
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: currentUser.user_id,
+                        username: currentUser.username,
+                        action: `Archived incident log #${incidentId}`
+                    }
+                ]);
+
+                await fetchIncidents();
+                await fetchLogTrails();
+                showAppToast('ARCHIVED LOG', `Incident #${incidentId} was removed from active records.`);
+
+            } catch (err) {
+                showAppToast('ARCHIVE FAILED', err.message, true);
+            }
+        }
+
+        function filterIncidents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+
+            const filtered = globalIncidentsData.filter(i => {
+                const matchesSearch = i.title.toLowerCase().includes(query) || i.description.toLowerCase().includes(query);
+                const matchesStatus = (status === 'ALL') || (i.status === status);
+                return matchesSearch && matchesStatus;
+            });
+
+            renderIncidents(filtered);
+        }
+
+        // --- INCIDENT PICKER MAP ---
+        function openCreateIncidentModal() {
+            document.getElementById('createIncidentModal').classList.remove('hidden');
+            setTimeout(initPickerMap, 200);
+        }
+
+        function closeCreateIncidentModal() {
+            document.getElementById('createIncidentModal').classList.add('hidden');
+        }
+
+        function initPickerMap() {
+            const defaultLat = 10.9613;
+            const defaultLng = 124.6483;
+
+            if (pickerMap) {
+                pickerMap.invalidateSize();
+                return;
+            }
+
+            pickerMap = L.map('pickerMapContainer').setView([defaultLat, defaultLng], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(pickerMap);
+
+            pickerMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(pickerMap);
+
+            updateCoordinatesAndAddress(defaultLat, defaultLng);
+
+            pickerMap.on('click', function(e) {
+                const { lat, lng } = e.latlng;
+                pickerMarker.setLatLng([lat, lng]);
+                updateCoordinatesAndAddress(lat, lng);
+            });
+
+            pickerMarker.on('dragend', function(e) {
+                const { lat, lng } = e.target.getLatLng();
+                updateCoordinatesAndAddress(lat, lng);
+            });
+        }
+
+        async function updateCoordinatesAndAddress(lat, lng) {
+            document.getElementById('newLatitude').value = lat.toFixed(8);
+            document.getElementById('newLongitude').value = lng.toFixed(8);
+
+            const addressInput = document.getElementById('newAddress');
+            addressInput.value = `Fetching location address...`;
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                
+                if (data && data.display_name) {
+                    addressInput.value = data.display_name.split(',').slice(0, 3).join(', ');
+                } else {
+                    addressInput.value = `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`;
+                }
+            } catch (e) {
+                addressInput.value = `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`;
+            }
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    if (pickerMap && pickerMarker) {
+                        pickerMap.setView([lat, lng], 17);
+                        pickerMarker.setLatLng([lat, lng]);
+                        updateCoordinatesAndAddress(lat, lng);
+                    }
+                }, () => {
+                    showAppToast('GPS ERROR', 'Could not retrieve location. Tap map directly.', true);
+                });
+            }
+        }
+
+        async function submitNewIncident(e) {
+            if (e) e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitIncidentBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Saving...";
+
+            try {
+                const { data, error } = await supabase
+                    .from('incidents')
+                    .insert([
+                        {
+                            user_id: currentUser ? currentUser.user_id : null,
+                            title: document.getElementById('newTitle').value.trim(),
+                            category: document.getElementById('newCategory').value,
+                            description: document.getElementById('newDescription').value.trim(),
+                            location_address: document.getElementById('newAddress').value.trim(),
+                            latitude: parseFloat(document.getElementById('newLatitude').value),
+                            longitude: parseFloat(document.getElementById('newLongitude').value)
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                // Step 2 Audit Trail: Log new incident submit
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Resident',
+                        action: `Logged new incident report: ${document.getElementById('newTitle').value.trim()}`
+                    }
+                ]);
+
+                closeCreateIncidentModal();
+                document.getElementById('createIncidentForm').reset();
+                addOfficerNotification(`📋 New Incident Log Filed`, `A new report was submitted by ${currentUser ? currentUser.full_name : 'Resident'}.`);
+
+                await fetchIncidents();
+                if (typeof fetchLogTrails === 'function') fetchLogTrails();
+                showAppToast('REPORT SUBMITTED', 'Your incident blotter report has been filed.');
+
+            } catch (err) {
+                showAppToast('SUBMIT FAILED', err.message, true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Log";
+            }
+        }
+
+        // --- GIS MAPPER TAB ---
+        function initLeafletMap() {
+            const danhugLat = 10.9613;
+            const danhugLng = 124.6483;
+
+            if (!leafletMap) {
+                leafletMap = L.map('leafletMapContainer').setView([danhugLat, danhugLng], 15);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap'
+                }).addTo(leafletMap);
+
+                mapMarkersGroup = L.layerGroup().addTo(leafletMap);
+            } else {
+                leafletMap.invalidateSize();
+            }
+
+            mapMarkersGroup.clearLayers();
+
+            globalIncidentsData.forEach(inc => {
+                const lat = parseFloat(inc.latitude);
+                const lng = parseFloat(inc.longitude);
+
+                if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                    let statusBadgeClass = "bg-amber-100 text-alertamber";
+                    if (inc.status === 'In Progress') statusBadgeClass = "bg-blue-100 text-skyblue";
+                    if (inc.status === 'Resolved') statusBadgeClass = "bg-emerald-100 text-safetygreen";
+
+                    const marker = L.marker([lat, lng]).addTo(mapMarkersGroup);
+
+                    marker.bindPopup(`
+                        <div class="p-1 max-w-[180px]">
+                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${statusBadgeClass} inline-block mb-1">
+                                ${inc.status}
+                            </span>
+                            <h4 class="text-xs font-bold text-navy leading-snug">${inc.title}</h4>
+                            <p class="text-[10px] text-slate-600 mt-1"><strong>Cat:</strong> ${inc.category}</p>
+                            <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-skyblue"></i> ${inc.location_address}</p>
+                        </div>
+                    `);
+                }
+            });
+
+            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+            if (activeSos) {
+                const sosData = JSON.parse(activeSos);
+                const sosLat = parseFloat(sosData.lat);
+                const sosLng = parseFloat(sosData.lng);
+
+                if (!isNaN(sosLat) && !isNaN(sosLng)) {
+                    const sosMapPin = L.marker([sosLat, sosLng]).addTo(mapMarkersGroup);
+
+                    sosMapPin.bindPopup(`
+                        <div class="p-1 max-w-[200px]">
+                            <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
+                                🚨 SOS EMERGENCY
+                            </span>
+                            <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
+                            <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
+                            <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
+                            <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
+                        </div>
+                    `);
+                }
+            }
+        }
+
+        function recenterMap() {
+            if (leafletMap) {
+                leafletMap.setView([10.9613, 124.6483], 15);
+            }
+        }
+
+        function openLogoutModal() {
+            document.getElementById('logoutModal').classList.remove('hidden');
+        }
+
+        function closeLogoutModal() {
+            document.getElementById('logoutModal').classList.add('hidden');
+        }
+
+        async function confirmLogout() {
+            if (currentUser) {
+                try {
+                    await supabase
+                        .from('log_trails')
+                        .insert([
+                            {
+                                user_id: currentUser.user_id,
+                                username: currentUser.username,
+                                action: 'User logged out'
+                            }
+                        ]);
+                } catch (e) {
+                    console.log('Logout audit log error ignored');
+                }
+            }
+
+            localStorage.removeItem('bayaniwatch_user');
+            closeLogoutModal();
+            
+            document.getElementById('homeTab').classList.add('hidden');
+            document.getElementById('mapTab').classList.add('hidden');
+            document.getElementById('notificationsTab').classList.add('hidden');
+            document.getElementById('profileTab').classList.add('hidden');
+            document.getElementById('bottomNav').classList.add('hidden');
+            
+            showLoginScreen();
+            document.getElementById('loginForm').reset();
+            document.getElementById('alertMessage').classList.add('hidden');
+        }
+
+        window.onload = async () => {
+            const saved = localStorage.getItem('bayaniwatch_user');
+            if (saved) {
+                const user = JSON.parse(saved);
+                await initDashboard(user);
+            }
+
+            setInterval(checkActiveSos, 3000);
+        };
+    </script>
+</body>
+</html>
