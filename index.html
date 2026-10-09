@@ -583,6 +583,30 @@
                         </select>
                     </div>
                     <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
+                <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
+                    <!-- Live Video Stream -->
+                    <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
+                    <!-- Canvas for Snapshot Processing -->
+                    <canvas id="cameraCanvas" class="hidden"></canvas>
+                    <!-- Captured Image Preview -->
+                    <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
+                    
+                    <!-- Camera Controls -->
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
+                        <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                            <i class="fa-solid fa-camera mr-1"></i> Start Camera
+                        </button>
+                        <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
+                            <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
+                        </button>
+                        <button type="button" id="retakeCamBtn" onclick="resetCamera()" class="hidden bg-slate-700/80 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Retake
+                        </button>
+                    </div>
+                </div>
+            </div>
+                    <div>
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Description</label>
                         <textarea id="newDescription" required rows="2" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Detailed report description..."></textarea>
                     </div>
@@ -641,6 +665,64 @@
 
         let pickerMap = null;
         let pickerMarker = null;
+        let mediaStreamInstance = null;
+        let capturedBlobData = null;
+        // --- CAMERA MODULE HANDLERS ---
+        async function initCamera() {
+            try {
+                mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" }, 
+                    audio: false 
+                });
+                const videoEl = document.getElementById('cameraStream');
+                videoEl.srcObject = mediaStreamInstance;
+                videoEl.classList.remove('hidden');
+                document.getElementById('photoPreview').classList.add('hidden');
+
+                document.getElementById('startCamBtn').classList.add('hidden');
+                document.getElementById('snapCamBtn').classList.remove('hidden');
+            } catch (err) {
+                showAppToast('CAMERA ERROR', 'Unable to access camera permissions.', true);
+            }
+        }
+
+        function captureSnapshot() {
+            const video = document.getElementById('cameraStream');
+            const canvas = document.getElementById('cameraCanvas');
+            const preview = document.getElementById('photoPreview');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                capturedBlobData = blob;
+                preview.src = URL.createObjectURL(blob);
+                
+                video.classList.add('hidden');
+                preview.classList.remove('hidden');
+
+                document.getElementById('snapCamBtn').classList.add('hidden');
+                document.getElementById('retakeCamBtn').classList.remove('hidden');
+
+                stopCameraStream();
+            }, 'image/jpeg', 0.8);
+        }
+
+        function resetCamera() {
+            capturedBlobData = null;
+            document.getElementById('retakeCamBtn').classList.add('hidden');
+            initCamera();
+        }
+
+        function stopCameraStream() {
+            if (mediaStreamInstance) {
+                mediaStreamInstance.getTracks().forEach(track => track.stop());
+                mediaStreamInstance = null;
+            }
+        }
 
         // 🔊 Initialize SOS Audio Alarm
         const sosAudio = new Audio('./alarm.mp3');
@@ -974,14 +1056,14 @@
                 return;
             }
 
-            // Attempt & Lockout storage keys
+            // Check existing attempt count and lock status for this username
             const attemptsKey = `bayaniwatch_attempts_${username.toLowerCase()}`;
             const lockKey = `bayaniwatch_lockuntil_${username.toLowerCase()}`;
 
             const lockTime = localStorage.getItem(lockKey);
             const now = Date.now();
 
-            // Check 30-second cooldown status
+            // Check if user is currently locked out (30-second cooldown)
             if (lockTime && now < parseInt(lockTime)) {
                 const secondsLeft = Math.ceil((parseInt(lockTime) - now) / 1000);
                 showAlert(`ACCOUNT LOCKED: Too many failed attempts. Try again in ${secondsLeft}s.`, 'error');
@@ -991,16 +1073,16 @@
             setLoading(true);
 
             try {
-                // Safe query using .maybeSingle() to prevent Supabase 406 REST errors
+                // Fetch user record from Supabase
                 const { data: user, error } = await supabase
                     .from('users')
                     .select('*')
                     .eq('username', username)
-                    .maybeSingle();
+                    .single();
 
                 let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
 
-                // If user doesn't exist OR password doesn't match
+                // Invalid user or incorrect password scenario
                 if (error || !user || !(user.password_hash === password || user.password === password)) {
                     failedCount += 1;
                     localStorage.setItem(attemptsKey, failedCount);
@@ -1008,11 +1090,11 @@
                     if (failedCount >= 3) {
                         const lockDuration = 30 * 1000; // 30-second lockout penalty
                         localStorage.setItem(lockKey, (now + lockDuration).toString());
-                        localStorage.removeItem(attemptsKey);
+                        localStorage.removeItem(attemptsKey); // Reset attempt counter after lockout applies
 
                         showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account temporarily locked for 30s.', 'error');
 
-                        // Audit Trail Log in Supabase
+                        // Audit Trail: Record Lockdown trigger in Supabase
                         await supabase.from('log_trails').insert([
                             {
                                 user_id: user ? user.user_id : null,
@@ -1029,14 +1111,15 @@
                     return;
                 }
 
-                // Check disabled status
+                // Check account status in Supabase database
                 if (user.status === 'inactive' || user.status === 'disabled') {
                     showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
                     setLoading(false);
                     return;
                 }
 
-                // SUCCESSFUL LOGIN
+                // --- LOGIN SUCCESSFUL ---
+                // Reset attempt trackers upon correct password
                 localStorage.removeItem(attemptsKey);
                 localStorage.removeItem(lockKey);
 
@@ -1052,6 +1135,7 @@
 
                 localStorage.setItem('bayaniwatch_user', JSON.stringify(sessionUser));
 
+                // Log successful login to audit trail
                 await supabase.from('log_trails').insert([
                     {
                         user_id: user.user_id,
@@ -1456,53 +1540,65 @@
         }
 
         async function submitNewIncident(e) {
-            if (e) e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitIncidentBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Saving...";
+    if (e) e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitIncidentBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Uploading & Saving...";
 
-            try {
-                const { data, error } = await supabase
-                    .from('incidents')
-                    .insert([
-                        {
-                            user_id: currentUser ? currentUser.user_id : null,
-                            title: document.getElementById('newTitle').value.trim(),
-                            category: document.getElementById('newCategory').value,
-                            description: document.getElementById('newDescription').value.trim(),
-                            location_address: document.getElementById('newAddress').value.trim(),
-                            latitude: parseFloat(document.getElementById('newLatitude').value),
-                            longitude: parseFloat(document.getElementById('newLongitude').value)
-                        }
-                    ]);
+    let uploadedImageUrl = null;
 
-                if (error) throw error;
+    try {
+        // Upload photo to Supabase storage if captured
+        if (capturedBlobData) {
+            const fileName = `incident_${Date.now()}.jpg`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('incident-photos')
+                .upload(fileName, capturedBlobData, { contentType: 'image/jpeg' });
 
-                // Step 2 Audit Trail: Log new incident submit
-                await supabase.from('log_trails').insert([
-                    {
-                        user_id: currentUser ? currentUser.user_id : null,
-                        username: currentUser ? currentUser.username : 'Resident',
-                        action: `Logged new incident report: ${document.getElementById('newTitle').value.trim()}`
-                    }
-                ]);
+            if (uploadError) throw uploadError;
 
-                closeCreateIncidentModal();
-                document.getElementById('createIncidentForm').reset();
-                addOfficerNotification(`📋 New Incident Log Filed`, `A new report was submitted by ${currentUser ? currentUser.full_name : 'Resident'}.`);
+            const { data: urlData } = supabase.storage
+                .from('incident-photos')
+                .getPublicUrl(fileName);
 
-                await fetchIncidents();
-                if (typeof fetchLogTrails === 'function') fetchLogTrails();
-                showAppToast('REPORT SUBMITTED', 'Your incident blotter report has been filed.');
-
-            } catch (err) {
-                showAppToast('SUBMIT FAILED', err.message, true);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Submit Log";
-            }
+            uploadedImageUrl = urlData.publicUrl;
         }
+
+        // Insert incident record into Supabase
+        const { error } = await supabase
+            .from('incidents')
+            .insert([
+                {
+                    user_id: currentUser ? currentUser.user_id : null,
+                    title: document.getElementById('newTitle').value.trim(),
+                    category: document.getElementById('newCategory').value,
+                    description: document.getElementById('newDescription').value.trim(),
+                    location_address: document.getElementById('newAddress').value.trim(),
+                    latitude: parseFloat(document.getElementById('newLatitude').value),
+                    longitude: parseFloat(document.getElementById('newLongitude').value),
+                    image_url: uploadedImageUrl
+                }
+            ]);
+
+        if (error) throw error;
+
+        // Reset forms and camera
+        stopCameraStream();
+        capturedBlobData = null;
+        closeCreateIncidentModal();
+        document.getElementById('createIncidentForm').reset();
+
+        await fetchIncidents();
+        showAppToast('REPORT FILED', 'Incident report with photo evidence submitted!');
+
+    } catch (err) {
+        showAppToast('SUBMIT FAILED', err.message, true);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Log";
+    }
+}
 
         // --- GIS MAPPER TAB ---
         function initLeafletMap() {
