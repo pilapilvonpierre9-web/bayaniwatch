@@ -826,7 +826,7 @@
             sendBtn.innerText = "Searching Account...";
 
             try {
-                // Search for user by username or email
+                // 1. Search for user in users table
                 const { data: users, error } = await supabase
                     .from('users')
                     .select('*')
@@ -841,12 +841,28 @@
 
                 targetUserForReset = users[0];
 
-                // Generate a random 6-digit OTP code (e.g. 849201)
+                // 2. Generate 6-digit OTP code & 5-minute expiry timestamp
                 const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-                const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // Expires in 5 minutes
+                const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-                // Save OTP to user record in Supabase
-                const { error: updateErr } = await supabase
+                // 3. Save OTP entry into password_resets table
+                const { error: resetTableErr } = await supabase
+                    .from('password_resets')
+                    .insert([
+                        {
+                            user_id: targetUserForReset.user_id,
+                            username: targetUserForReset.username,
+                            email: targetUserForReset.email || null,
+                            otp_code: generatedOTP,
+                            expires_at: expiryTime,
+                            is_used: false
+                        }
+                    ]);
+
+                if (resetTableErr) throw resetTableErr;
+
+                // 4. Update users table backup fields
+                await supabase
                     .from('users')
                     .update({ 
                         reset_otp: generatedOTP, 
@@ -854,16 +870,13 @@
                     })
                     .eq('user_id', targetUserForReset.user_id);
 
-                if (updateErr) throw updateErr;
-
-                // Display generated OTP on screen (for testing/demo) & prompt user
                 showOtpAlert(`🔑 DEMO OTP GENERATED: ${generatedOTP} (Valid for 5 mins)`, 'success');
 
                 document.getElementById('otpStep1').classList.add('hidden');
                 document.getElementById('otpStep2').classList.remove('hidden');
 
             } catch (err) {
-                console.error('OTP Error:', err);
+                console.error('OTP Generation Error:', err);
                 showOtpAlert('Failed to generate OTP code.', 'error');
             } finally {
                 sendBtn.disabled = false;
@@ -896,24 +909,26 @@
             resetBtn.innerText = "Updating Database...";
 
             try {
-                // Fetch fresh user record from Supabase to verify OTP and expiry
-                const { data: userRecord, error: fetchErr } = await supabase
-                    .from('users')
-                    .select('reset_otp, reset_otp_expiry')
+                // 1. Check latest unused OTP entry in password_resets table
+                const { data: resetRecords, error: resetFetchErr } = await supabase
+                    .from('password_resets')
+                    .select('*')
                     .eq('user_id', targetUserForReset.user_id)
-                    .single();
+                    .eq('otp_code', otpEntered)
+                    .eq('is_used', false)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
 
-                if (fetchErr || !userRecord) throw new Error('Account verification error.');
-
-                const now = new Date();
-                const expiry = new Date(userRecord.reset_otp_expiry);
-
-                if (userRecord.reset_otp !== otpEntered) {
+                if (resetFetchErr || !resetRecords || resetRecords.length === 0) {
                     showOtpAlert('Invalid OTP code. Check and try again.', 'error');
                     resetBtn.disabled = false;
                     resetBtn.innerText = "UPDATE PASSWORD";
                     return;
                 }
+
+                const resetRecord = resetRecords[0];
+                const now = new Date();
+                const expiry = new Date(resetRecord.expires_at);
 
                 if (now > expiry) {
                     showOtpAlert('OTP code has expired. Request a new one.', 'error');
@@ -922,11 +937,18 @@
                     return;
                 }
 
-                // UPDATE PASSWORD IN USERS TABLE & CLEAR OTP
+                // 2. Mark OTP entry as used in password_resets table
+                await supabase
+                    .from('password_resets')
+                    .update({ is_used: true })
+                    .eq('id', resetRecord.id);
+
+                // 3. Update user's password in users table
                 const { error: updateErr } = await supabase
                     .from('users')
                     .update({
                         password_hash: newPassword,
+                        password: newPassword,
                         reset_otp: null,
                         reset_otp_expiry: null
                     })
@@ -934,12 +956,12 @@
 
                 if (updateErr) throw updateErr;
 
-                // Log audit trail in log_trails table
+                // 4. Log audit trail entry
                 await supabase.from('log_trails').insert([
                     {
                         user_id: targetUserForReset.user_id,
                         username: targetUserForReset.username,
-                        action: 'Reset account password via OTP recovery'
+                        action: `Reset password via OTP code (Record #${resetRecord.id})`
                     }
                 ]);
 
