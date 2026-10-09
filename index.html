@@ -628,6 +628,21 @@
                             <option value="Others">Others</option>
                         </select>
                     </div>
+                    <!-- PASTE STEP 1 UI CODE HERE (Line 632) -->
+                <div class="flex gap-2 my-2">
+                    <button type="button" onclick="captureIncidentPhoto()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Take Photo
+                    </button>
+                    <button type="button" id="record5sBtn" onclick="record5sIncidentVideo()" class="w-1/2 bg-red-50 text-red-600 font-bold text-xs py-2 rounded-xl border border-red-200 hover:bg-red-100 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-video"></i> Record 5s Video
+                    </button>
+                </div>
+
+                <!-- Media Preview Box -->
+                <div id="incidentMediaPreview" class="hidden mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
+                    <img id="incidentPhotoImg" class="hidden w-full h-32 object-cover">
+                    <video id="incidentVideoPlayer" controls playsinline class="hidden w-full h-32 object-cover"></video>
+                </div>
 
                     <!-- Incident Log Camera Capture Module -->
                     <div>
@@ -778,6 +793,62 @@
         // Incident Photo Camera State
         let mediaStreamInstance = null;
         let capturedBlobData = null;
+        // PASTE STEP 2 HERE (Line 796)
+        // Incident Log Video State
+        let incidentMediaBlob = null;
+        let incidentMediaType = null; // 'photo' or 'video'
+
+        async function record5sIncidentVideo() {
+            const btn = document.getElementById('record5sBtn');
+            if (!btn) return;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Recording (5s)...`;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: true });
+                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const chunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) chunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    incidentMediaBlob = new Blob(chunks, { type: 'video/webm' });
+                    incidentMediaType = 'video';
+
+                    const previewBox = document.getElementById('incidentMediaPreview');
+                    const imgEl = document.getElementById('incidentPhotoImg');
+                    const videoEl = document.getElementById('incidentVideoPlayer');
+
+                    if (previewBox) previewBox.classList.remove('hidden');
+                    if (imgEl) imgEl.classList.add('hidden');
+                    if (videoEl) {
+                        videoEl.classList.remove('hidden');
+                        videoEl.src = URL.createObjectURL(incidentMediaBlob);
+                    }
+
+                    stream.getTracks().forEach(track => track.stop());
+
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-check text-safetygreen"></i> Recorded (5s)`;
+                };
+
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, 5000);
+
+            } catch (err) {
+                console.error("Camera/Mic Permission Error:", err);
+                showAppToast('CAMERA ERROR', 'Unable to access camera or microphone.', true);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-video"></i> Record 5s Video`;
+            }
+        }
 
         // SOS Media Recording State
         let sosStreamInstance = null;
@@ -787,6 +858,8 @@
         let sosMediaType = null; // 'photo' or 'video'
         // --- ACCOUNT RECOVERY (OTP) FUNCTIONS ---
         let targetUserForReset = null;
+        
+        
 
         function openForgotPasswordModal() {
             document.getElementById('forgotPasswordModal').classList.remove('hidden');
@@ -2040,21 +2113,28 @@
             let uploadedImageUrl = null;
 
             try {
-                // Upload photo to Supabase storage if captured
-                if (capturedBlobData) {
-                    const fileName = `incident_${Date.now()}.jpg`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('incident-photos')
-                        .upload(fileName, capturedBlobData, { contentType: 'image/jpeg' });
+                // Upload photo or 5s video to Supabase storage if captured
+        if (incidentMediaBlob || capturedBlobData) {
+            const mediaFile = incidentMediaBlob || capturedBlobData;
+            const isVideo = incidentMediaType === 'video';
+            const ext = isVideo ? 'webm' : 'jpg';
+            const fileName = `incident_${Date.now()}.${ext}`;
 
-                    if (uploadError) throw uploadError;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('incident-photos')
+                .upload(fileName, mediaFile, {
+                    contentType: isVideo ? 'video/webm' : 'image/jpeg',
+                    upsert: true
+                });
 
-                    const { data: urlData } = supabase.storage
-                        .from('incident-photos')
-                        .getPublicUrl(fileName);
+            if (uploadError) throw uploadError;
 
-                    uploadedImageUrl = urlData.publicUrl;
-                }
+            const { data: urlData } = supabase.storage
+                .from('incident-photos')
+                .getPublicUrl(fileName);
+
+            uploadedImageUrl = urlData.publicUrl;
+        }
 
                 // Insert incident record into Supabase
                 const { error } = await supabase
