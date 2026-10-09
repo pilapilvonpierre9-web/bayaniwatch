@@ -145,6 +145,13 @@
                                 <i id="eyeIcon" class="fa-solid fa-eye text-xs"></i>
                             </button>
                         </div>
+                    
+                    <!-- PASTE FORGOT PASSWORD LINK HERE (Line 148) -->
+                        <div class="text-right mt-1">
+                            <button type="button" onclick="openForgotPasswordModal()" class="text-[10px] font-bold text-skyblue hover:underline">
+                                Forgot Password?
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" id="loginBtn" class="w-full bg-navy hover:bg-navy/90 active:scale-[0.98] text-slatewhite font-bold py-3 rounded-xl transition duration-150 shadow-lg shadow-navy/20 text-xs flex justify-center items-center mt-2">
@@ -692,6 +699,66 @@
                 </div>
             </div>
         </div>
+        <!-- Modal: Logout Confirmation -->
+        <div id="logoutModal" class="hidden absolute inset-0 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-xl p-5 w-full max-w-[260px] text-center">
+                <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto mb-3 text-base">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-sm font-bold text-navy mb-1">Confirm Logout</h3>
+                <p class="text-[11px] text-slate-500 mb-4 leading-tight">Are you sure you want to logout/sign out?</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="closeLogoutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition">Cancel</button>
+                    <button onclick="confirmLogout()" class="w-full bg-navy hover:bg-navy/90 text-slatewhite font-bold text-xs py-2 rounded-xl transition shadow-sm">Yes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASTE STEP 2 HERE (Line 695) -->
+        <!-- Modal: Password Recovery via OTP -->
+        <div id="forgotPasswordModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-[300px] space-y-3 relative">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <h3 class="text-xs font-black text-navy uppercase">Account Recovery (OTP)</h3>
+                    <button onclick="closeForgotPasswordModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div id="otpAlertMessage" class="hidden p-2 rounded-xl text-[10px] text-center font-bold"></div>
+
+                <!-- STEP 1: Enter Username/Email -->
+                <div id="otpStep1" class="space-y-2">
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Registered Username or Email</label>
+                        <input type="text" id="otpAccountInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter username or email">
+                    </div>
+                    <button type="button" onclick="requestOTPCode()" id="sendOtpBtn" class="w-full bg-navy text-white text-xs font-bold py-2.5 rounded-xl shadow">
+                        GENERATE 6-DIGIT OTP
+                    </button>
+                </div>
+
+                <!-- STEP 2: Enter Received OTP & New Password -->
+                <div id="otpStep2" class="hidden space-y-2">
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Enter 6-Digit OTP</label>
+                        <input type="text" id="otpCodeInput" maxlength="6" class="w-full text-center tracking-widest font-mono text-sm py-1.5 border rounded-xl bg-slate-50 font-bold focus:ring-1 focus:ring-skyblue" placeholder="000000">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">New Password</label>
+                        <input type="password" id="otpNewPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter new password">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Confirm New Password</label>
+                        <input type="password" id="otpConfirmPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Re-enter new password">
+                    </div>
+
+                    <button type="button" onclick="verifyAndResetPassword()" id="resetPasswordBtn" class="w-full bg-safetygreen text-white text-xs font-bold py-2.5 rounded-xl shadow uppercase">
+                        UPDATE PASSWORD
+                    </button>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -718,7 +785,182 @@
         let sosRecordedChunks = [];
         let sosMediaBlob = null;
         let sosMediaType = null; // 'photo' or 'video'
+        // --- ACCOUNT RECOVERY (OTP) FUNCTIONS ---
+        let targetUserForReset = null;
 
+        function openForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.remove('hidden');
+            document.getElementById('otpStep1').classList.remove('hidden');
+            document.getElementById('otpStep2').classList.add('hidden');
+            document.getElementById('otpAlertMessage').classList.add('hidden');
+            document.getElementById('otpAccountInput').value = '';
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.add('hidden');
+            targetUserForReset = null;
+        }
+
+        function showOtpAlert(msg, type) {
+            const box = document.getElementById('otpAlertMessage');
+            if (!box) return;
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-emerald-100', 'text-safetygreen');
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else {
+                box.classList.add('bg-emerald-100', 'text-safetygreen');
+            }
+            box.innerText = msg;
+        }
+
+        async function requestOTPCode() {
+            const inputVal = document.getElementById('otpAccountInput').value.trim();
+
+            if (!inputVal) {
+                showOtpAlert('Please enter your username or email.', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendOtpBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerText = "Searching Account...";
+
+            try {
+                // Search for user by username or email
+                const { data: users, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .or(`username.eq.${inputVal},email.eq.${inputVal}`);
+
+                if (error || !users || users.length === 0) {
+                    showOtpAlert('Account not found in system.', 'error');
+                    sendBtn.disabled = false;
+                    sendBtn.innerText = "GENERATE 6-DIGIT OTP";
+                    return;
+                }
+
+                targetUserForReset = users[0];
+
+                // Generate a random 6-digit OTP code (e.g. 849201)
+                const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // Expires in 5 minutes
+
+                // Save OTP to user record in Supabase
+                const { error: updateErr } = await supabase
+                    .from('users')
+                    .update({ 
+                        reset_otp: generatedOTP, 
+                        reset_otp_expiry: expiryTime 
+                    })
+                    .eq('user_id', targetUserForReset.user_id);
+
+                if (updateErr) throw updateErr;
+
+                // Display generated OTP on screen (for testing/demo) & prompt user
+                showOtpAlert(`🔑 DEMO OTP GENERATED: ${generatedOTP} (Valid for 5 mins)`, 'success');
+
+                document.getElementById('otpStep1').classList.add('hidden');
+                document.getElementById('otpStep2').classList.remove('hidden');
+
+            } catch (err) {
+                console.error('OTP Error:', err);
+                showOtpAlert('Failed to generate OTP code.', 'error');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerText = "GENERATE 6-DIGIT OTP";
+            }
+        }
+
+        async function verifyAndResetPassword() {
+            const otpEntered = document.getElementById('otpCodeInput').value.trim();
+            const newPassword = document.getElementById('otpNewPassword').value.trim();
+            const confirmPassword = document.getElementById('otpConfirmPassword').value.trim();
+
+            if (!otpEntered || !newPassword || !confirmPassword) {
+                showOtpAlert('Please fill in all fields.', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showOtpAlert('New passwords do not match.', 'error');
+                return;
+            }
+
+            if (!targetUserForReset) {
+                showOtpAlert('Session expired. Restart recovery.', 'error');
+                return;
+            }
+
+            const resetBtn = document.getElementById('resetPasswordBtn');
+            resetBtn.disabled = true;
+            resetBtn.innerText = "Updating Database...";
+
+            try {
+                // Fetch fresh user record from Supabase to verify OTP and expiry
+                const { data: userRecord, error: fetchErr } = await supabase
+                    .from('users')
+                    .select('reset_otp, reset_otp_expiry')
+                    .eq('user_id', targetUserForReset.user_id)
+                    .single();
+
+                if (fetchErr || !userRecord) throw new Error('Account verification error.');
+
+                const now = new Date();
+                const expiry = new Date(userRecord.reset_otp_expiry);
+
+                if (userRecord.reset_otp !== otpEntered) {
+                    showOtpAlert('Invalid OTP code. Check and try again.', 'error');
+                    resetBtn.disabled = false;
+                    resetBtn.innerText = "UPDATE PASSWORD";
+                    return;
+                }
+
+                if (now > expiry) {
+                    showOtpAlert('OTP code has expired. Request a new one.', 'error');
+                    resetBtn.disabled = false;
+                    resetBtn.innerText = "UPDATE PASSWORD";
+                    return;
+                }
+
+                // UPDATE PASSWORD IN USERS TABLE & CLEAR OTP
+                const { error: updateErr } = await supabase
+                    .from('users')
+                    .update({
+                        password_hash: newPassword,
+                        password: newPassword, // Update both columns if present
+                        reset_otp: null,
+                        reset_otp_expiry: null
+                    })
+                    .eq('user_id', targetUserForReset.user_id);
+
+                if (updateErr) throw updateErr;
+
+                // Log audit trail in log_trails table
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: targetUserForReset.user_id,
+                        username: targetUserForReset.username,
+                        action: 'Reset account password via OTP recovery'
+                    }
+                ]);
+
+                showOtpAlert('SUCCESS! Password updated. Redirecting...', 'success');
+
+                setTimeout(() => {
+                    closeForgotPasswordModal();
+                    document.getElementById('username').value = targetUserForReset.username;
+                    document.getElementById('password').value = newPassword;
+                    showAppToast('PASSWORD RESET SUCCESSFUL', 'You can now sign in with your new password.');
+                }, 1500);
+
+            } catch (err) {
+                console.error("Password reset error:", err);
+                showOtpAlert('Failed to update password in database.', 'error');
+            } finally {
+                resetBtn.disabled = false;
+                resetBtn.innerText = "UPDATE PASSWORD";
+            }
+        }
         // --- INCIDENT LOG CAMERA MODULE HANDLERS ---
         async function initCamera() {
             try {
