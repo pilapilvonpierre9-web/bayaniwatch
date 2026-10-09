@@ -976,13 +976,15 @@
             try {
                 // Upload SOS Photo or Video to Supabase Storage if recorded
                 if (sosMediaBlob) {
-                    const ext = sosMediaType === 'video' ? 'webm' : 'jpg';
+                    const isVideo = sosMediaType === 'video';
+                    const ext = isVideo ? 'webm' : 'jpg';
                     const fileName = `sos_${Date.now()}.${ext}`;
 
                     const { data: uploadData, error: uploadError } = await supabase.storage
                         .from('incident-photos')
                         .upload(fileName, sosMediaBlob, { 
-                            contentType: sosMediaType === 'video' ? 'video/webm' : 'image/jpeg' 
+                            contentType: isVideo ? 'video/webm' : 'image/jpeg',
+                            upsert: true
                         });
 
                     if (!uploadError) {
@@ -1571,8 +1573,12 @@
                     <p class="text-[10px] text-slate-500 leading-snug">${item.description}</p>
                     
                     ${item.image_url ? `
-                        <div class="mt-1 rounded-xl overflow-hidden border border-slate-200">
-                            <img src="${item.image_url}" class="w-full h-28 object-cover cursor-pointer" onclick="window.open('${item.image_url}', '_blank')">
+                        <div class="mt-1 rounded-xl overflow-hidden border border-slate-200 bg-black">
+                            ${item.image_url.endsWith('.webm') || item.image_url.includes('webm') ? `
+                                <video src="${item.image_url}" controls playsinline class="w-full h-32 object-cover"></video>
+                            ` : `
+                                <img src="${item.image_url}" class="w-full h-28 object-cover cursor-pointer" onclick="window.open('${item.image_url}', '_blank')">
+                            `}
                         </div>
                     ` : ''}
 
