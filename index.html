@@ -967,10 +967,17 @@
 
                 showOtpAlert('SUCCESS! Password updated. Redirecting...', 'success');
 
+                // Store username locally before modal close clears targetUserForReset
+                const resetUsername = targetUserForReset.username;
+
                 setTimeout(() => {
                     closeForgotPasswordModal();
-                    document.getElementById('username').value = targetUserForReset.username;
-                    document.getElementById('password').value = newPassword;
+                    const usernameInput = document.getElementById('username');
+                    const passwordInput = document.getElementById('password');
+                    
+                    if (usernameInput) usernameInput.value = resetUsername;
+                    if (passwordInput) passwordInput.value = newPassword;
+                    
                     showAppToast('PASSWORD RESET SUCCESSFUL', 'You can now sign in with your new password.');
                 }, 1500);
 
