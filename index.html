@@ -948,7 +948,6 @@
                     .from('users')
                     .update({
                         password_hash: newPassword,
-                        password: newPassword,
                         reset_otp: null,
                         reset_otp_expiry: null
                     })
