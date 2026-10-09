@@ -927,7 +927,6 @@
                     .from('users')
                     .update({
                         password_hash: newPassword,
-                        password: newPassword, // Update both columns if present
                         reset_otp: null,
                         reset_otp_expiry: null
                     })
