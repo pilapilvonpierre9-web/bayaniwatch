@@ -494,6 +494,44 @@
                     </select>
                 </div>
 
+                <!-- SOS Camera / Video Recording Module UI -->
+                <div>
+                    <label class="block text-[9px] font-bold text-alertred uppercase mb-1">
+                        <i class="fa-solid fa-camera mr-1"></i> SOS Media Evidence (Optional)
+                    </label>
+                    <div class="relative bg-black rounded-xl overflow-hidden h-32 flex items-center justify-center border border-red-300">
+                        <!-- Live Video Stream -->
+                        <video id="sosStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                        <!-- Canvas for Photo Processing -->
+                        <canvas id="sosCanvas" class="hidden"></canvas>
+                        <!-- Captured Photo Preview -->
+                        <img id="sosPhotoPreview" class="hidden w-full h-full object-cover" alt="SOS Photo Evidence">
+                        <!-- Recorded Video Preview -->
+                        <video id="sosVideoPreview" controls class="hidden w-full h-full object-cover"></video>
+                        
+                        <!-- Video Recording Pulse Badge -->
+                        <div id="sosRecBadge" class="hidden absolute top-2 left-2 bg-red-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse z-20">
+                            <span class="w-2 h-2 rounded-full bg-white"></span> REC <span id="sosRecTimer">00:05</span>
+                        </div>
+
+                        <!-- Controls Overlay -->
+                        <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 px-2 z-10">
+                            <button type="button" id="startSosCamBtn" onclick="initSosCamera()" class="bg-red-700/80 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-lg font-bold backdrop-blur-xs">
+                                <i class="fa-solid fa-camera mr-1"></i> Open Cam
+                            </button>
+                            <button type="button" id="snapSosPhotoBtn" onclick="captureSosPhoto()" class="hidden bg-slate-800 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                                <i class="fa-solid fa-circle-dot mr-1"></i> Photo
+                            </button>
+                            <button type="button" id="recSosVideoBtn" onclick="recordSosVideo()" class="hidden bg-red-600 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                                <i class="fa-solid fa-video mr-1"></i> 5s Clip
+                            </button>
+                            <button type="button" id="resetSosCamBtn" onclick="resetSosMedia()" class="hidden bg-slate-700/80 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-[9px] font-bold text-navy uppercase mb-1">Emergency Details / Notes</label>
                     <textarea id="sosModalDetails" rows="2" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50" placeholder="e.g., Need immediate assistance at Purok 3 near chapel!"></textarea>
@@ -501,9 +539,9 @@
 
                 <div>
                     <label class="block text-[9px] font-bold text-navy uppercase mb-1">Pinpoint Emergency Location</label>
-                    <div id="sosMapContainer" style="height: 120px; width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; overflow: hidden;"></div>
-                    <input type="hidden" id="sosLatitude" value="10.8351">
-                    <input type="hidden" id="sosLongitude" value="124.7123">
+                    <div id="sosMapContainer" style="height: 100px; width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; overflow: hidden;"></div>
+                    <input type="hidden" id="sosLatitude" value="10.9613">
+                    <input type="hidden" id="sosLongitude" value="124.6483">
                 </div>
 
                 <div class="flex gap-2 pt-1">
@@ -570,6 +608,7 @@
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Title</label>
                         <input type="text" id="newTitle" required class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Brief summary of incident">
                     </div>
+
                     <div>
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Category</label>
                         <select id="newCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
@@ -582,30 +621,33 @@
                             <option value="Others">Others</option>
                         </select>
                     </div>
+
+                    <!-- Incident Log Camera Capture Module -->
                     <div>
-                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
-                <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
-                    <!-- Live Video Stream -->
-                    <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
-                    <!-- Canvas for Snapshot Processing -->
-                    <canvas id="cameraCanvas" class="hidden"></canvas>
-                    <!-- Captured Image Preview -->
-                    <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
-                    
-                    <!-- Camera Controls -->
-                    <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
-                        <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
-                            <i class="fa-solid fa-camera mr-1"></i> Start Camera
-                        </button>
-                        <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
-                            <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
-                        </button>
-                        <button type="button" id="retakeCamBtn" onclick="resetCamera()" class="hidden bg-slate-700/80 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
-                            <i class="fa-solid fa-rotate-left mr-1"></i> Retake
-                        </button>
+                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
+                        <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
+                            <!-- Live Video Stream -->
+                            <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
+                            <!-- Canvas for Snapshot Processing -->
+                            <canvas id="cameraCanvas" class="hidden"></canvas>
+                            <!-- Captured Image Preview -->
+                            <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
+                            
+                            <!-- Camera Controls -->
+                            <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
+                                <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                                    <i class="fa-solid fa-camera mr-1"></i> Start Camera
+                                </button>
+                                <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
+                                    <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
+                                </button>
+                                <button type="button" id="retakeCamBtn" onclick="resetCamera()" class="hidden bg-slate-700/80 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                                    <i class="fa-solid fa-rotate-left mr-1"></i> Retake
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+
                     <div>
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Description</label>
                         <textarea id="newDescription" required rows="2" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Detailed report description..."></textarea>
@@ -619,8 +661,8 @@
                             </button>
                         </div>
                         <div id="pickerMapContainer" class="w-full h-36 rounded-xl border border-slate-300 overflow-hidden mb-2"></div>
-                        <input type="hidden" id="newLatitude" value="10.8351">
-                        <input type="hidden" id="newLongitude" value="124.7123">
+                        <input type="hidden" id="newLatitude" value="10.9613">
+                        <input type="hidden" id="newLongitude" value="124.6483">
                     </div>
 
                     <div>
@@ -665,9 +707,19 @@
 
         let pickerMap = null;
         let pickerMarker = null;
+
+        // Incident Photo Camera State
         let mediaStreamInstance = null;
         let capturedBlobData = null;
-        // --- CAMERA MODULE HANDLERS ---
+
+        // SOS Media Recording State
+        let sosStreamInstance = null;
+        let sosMediaRecorder = null;
+        let sosRecordedChunks = [];
+        let sosMediaBlob = null;
+        let sosMediaType = null; // 'photo' or 'video'
+
+        // --- INCIDENT LOG CAMERA MODULE HANDLERS ---
         async function initCamera() {
             try {
                 mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ 
@@ -724,6 +776,113 @@
             }
         }
 
+        // --- SOS CAMERA & VIDEO RECORDER HANDLERS ---
+        async function initSosCamera() {
+            try {
+                sosStreamInstance = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" }, 
+                    audio: true 
+                });
+                const videoEl = document.getElementById('sosStream');
+                videoEl.srcObject = sosStreamInstance;
+                videoEl.classList.remove('hidden');
+
+                document.getElementById('sosPhotoPreview').classList.add('hidden');
+                document.getElementById('sosVideoPreview').classList.add('hidden');
+
+                document.getElementById('startSosCamBtn').classList.add('hidden');
+                document.getElementById('snapSosPhotoBtn').classList.remove('hidden');
+                document.getElementById('recSosVideoBtn').classList.remove('hidden');
+            } catch (err) {
+                showAppToast('CAMERA ERROR', 'Unable to access camera or microphone.', true);
+            }
+        }
+
+        function captureSosPhoto() {
+            const video = document.getElementById('sosStream');
+            const canvas = document.getElementById('sosCanvas');
+            const preview = document.getElementById('sosPhotoPreview');
+
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob((blob) => {
+                sosMediaBlob = blob;
+                sosMediaType = 'photo';
+
+                preview.src = URL.createObjectURL(blob);
+                video.classList.add('hidden');
+                preview.classList.remove('hidden');
+
+                document.getElementById('snapSosPhotoBtn').classList.add('hidden');
+                document.getElementById('recSosVideoBtn').classList.add('hidden');
+                document.getElementById('resetSosCamBtn').classList.remove('hidden');
+
+                stopSosCameraStream();
+            }, 'image/jpeg', 0.8);
+        }
+
+        function recordSosVideo() {
+            if (!sosStreamInstance) return;
+
+            sosRecordedChunks = [];
+            sosMediaRecorder = new MediaRecorder(sosStreamInstance);
+
+            sosMediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) sosRecordedChunks.push(e.data);
+            };
+
+            sosMediaRecorder.onstop = () => {
+                sosMediaBlob = new Blob(sosRecordedChunks, { type: 'video/webm' });
+                sosMediaType = 'video';
+
+                const videoPreview = document.getElementById('sosVideoPreview');
+                videoPreview.src = URL.createObjectURL(sosMediaBlob);
+
+                document.getElementById('sosStream').classList.add('hidden');
+                videoPreview.classList.remove('hidden');
+
+                document.getElementById('snapSosPhotoBtn').classList.add('hidden');
+                document.getElementById('recSosVideoBtn').classList.add('hidden');
+                document.getElementById('sosRecBadge').classList.add('hidden');
+                document.getElementById('resetSosCamBtn').classList.remove('hidden');
+
+                stopSosCameraStream();
+            };
+
+            sosMediaRecorder.start();
+            document.getElementById('sosRecBadge').classList.remove('hidden');
+
+            let seconds = 5;
+            const timerInterval = setInterval(() => {
+                seconds--;
+                document.getElementById('sosRecTimer').innerText = `00:0${seconds}`;
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    if (sosMediaRecorder && sosMediaRecorder.state === 'recording') {
+                        sosMediaRecorder.stop();
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetSosMedia() {
+            sosMediaBlob = null;
+            sosMediaType = null;
+            document.getElementById('resetSosCamBtn').classList.add('hidden');
+            initSosCamera();
+        }
+
+        function stopSosCameraStream() {
+            if (sosStreamInstance) {
+                sosStreamInstance.getTracks().forEach(track => track.stop());
+                sosStreamInstance = null;
+            }
+        }
+
         // 🔊 Initialize SOS Audio Alarm
         const sosAudio = new Audio('./alarm.mp3');
         sosAudio.loop = true;
@@ -762,6 +921,7 @@
         }
 
         function closeSosModal() {
+            stopSosCameraStream();
             document.getElementById('sosInputModal').classList.add('hidden');
         }
 
@@ -811,24 +971,48 @@
             const lat = parseFloat(document.getElementById('sosLatitude').value) || 10.9613;
             const lng = parseFloat(document.getElementById('sosLongitude').value) || 124.6483;
 
-            const sosPayload = {
-                user_id: currentUser ? currentUser.user_id : null,
-                sender: currentUser ? currentUser.full_name : 'Resident User',
-                title: category,
-                description: details,
-                address: `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`,
-                lat: lat,
-                lng: lng,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-
-            localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosPayload));
-            closeSosModal();
-
-            const detailsInput = document.getElementById('sosModalDetails');
-            if (detailsInput) detailsInput.value = '';
+            let uploadedMediaUrl = null;
 
             try {
+                // Upload SOS Photo or Video to Supabase Storage if recorded
+                if (sosMediaBlob) {
+                    const ext = sosMediaType === 'video' ? 'webm' : 'jpg';
+                    const fileName = `sos_${Date.now()}.${ext}`;
+
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('incident-photos')
+                        .upload(fileName, sosMediaBlob, { 
+                            contentType: sosMediaType === 'video' ? 'video/webm' : 'image/jpeg' 
+                        });
+
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage
+                            .from('incident-photos')
+                            .getPublicUrl(fileName);
+                        uploadedMediaUrl = urlData.publicUrl;
+                    }
+                }
+
+                const sosPayload = {
+                    user_id: currentUser ? currentUser.user_id : null,
+                    sender: currentUser ? currentUser.full_name : 'Resident User',
+                    title: category,
+                    description: details,
+                    address: `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`,
+                    lat: lat,
+                    lng: lng,
+                    media_url: uploadedMediaUrl,
+                    media_type: sosMediaType,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+
+                localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosPayload));
+                closeSosModal();
+
+                const detailsInput = document.getElementById('sosModalDetails');
+                if (detailsInput) detailsInput.value = '';
+
+                // Insert into incidents table
                 const { error } = await supabase
                     .from('incidents')
                     .insert([
@@ -840,13 +1024,27 @@
                             location_address: sosPayload.address,
                             latitude: lat,
                             longitude: lng,
-                            status: 'Pending'
+                            status: 'Pending',
+                            image_url: uploadedMediaUrl
                         }
                     ]);
 
                 if (error) throw error;
 
-                // Step 2 Audit Trail: Log SOS action into log_trails
+                // Log into sos_alerts table
+                await supabase.from('sos_alerts').insert([
+                    {
+                        user_id: sosPayload.user_id,
+                        username: currentUser ? currentUser.username : 'Resident',
+                        latitude: lat,
+                        longitude: lng,
+                        status: 'ACTIVE',
+                        media_url: uploadedMediaUrl,
+                        media_type: sosMediaType
+                    }
+                ]);
+
+                // Audit Trail: Log SOS action into log_trails
                 await supabase.from('log_trails').insert([
                     {
                         user_id: sosPayload.user_id,
@@ -858,14 +1056,15 @@
                 await fetchIncidents();
                 if (typeof fetchLogTrails === 'function') fetchLogTrails();
 
+                addOfficerNotification(`🚨 CRITICAL SOS: ${category}`, `Resident ${sosPayload.sender} triggered an emergency SOS panic alert.`);
+                checkActiveSos();
+
+                showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted to officers & saved to logs.', true);
+
             } catch (err) {
                 console.error("Supabase SOS insert error:", err);
+                showAppToast('SOS ERROR', 'Failed to broadcast alert to cloud server.', true);
             }
-
-            addOfficerNotification(`🚨 CRITICAL SOS: ${category}`, `Resident ${sosPayload.sender} triggered an emergency SOS panic alert.`);
-            checkActiveSos();
-
-            showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted to officers & saved to logs.', true);
         }
 
         function checkActiveSos() {
@@ -930,15 +1129,25 @@
                 if (leafletMap && mapMarkersGroup) {
                     leafletMap.setView([sosData.lat, sosData.lng], 17);
 
-                    const sosMarker = L.marker([sosData.lat, sosData.lng]).addTo(mapMarkersGroup);
+                    const sosMarkerPin = L.marker([sosData.lat, sosData.lng]).addTo(mapMarkersGroup);
 
-                    sosMarker.bindPopup(`
+                    let mediaHtml = '';
+                    if (sosData.media_url) {
+                        if (sosData.media_type === 'video') {
+                            mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-24 object-cover rounded mt-1"></video>`;
+                        } else {
+                            mediaHtml = `<img src="${sosData.media_url}" class="w-full h-24 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${sosData.media_url}', '_blank')">`;
+                        }
+                    }
+
+                    sosMarkerPin.bindPopup(`
                         <div class="p-1 max-w-[200px]">
                             <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
                                 🚨 SOS EMERGENCY
                             </span>
                             <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
                             <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
+                            ${mediaHtml}
                             <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
                             <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
                         </div>
@@ -1046,6 +1255,7 @@
             box.innerText = msg;
         }
 
+        // --- AUTHENTICATION HANDLERS (WITH 3-ATTEMPT LOCKOUT) ---
         async function handleLogin(e) {
             if (e) e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -1056,14 +1266,14 @@
                 return;
             }
 
-            // Check existing attempt count and lock status for this username
+            // Attempt & Lockout storage keys
             const attemptsKey = `bayaniwatch_attempts_${username.toLowerCase()}`;
             const lockKey = `bayaniwatch_lockuntil_${username.toLowerCase()}`;
 
             const lockTime = localStorage.getItem(lockKey);
             const now = Date.now();
 
-            // Check if user is currently locked out (30-second cooldown)
+            // Check 30-second cooldown status
             if (lockTime && now < parseInt(lockTime)) {
                 const secondsLeft = Math.ceil((parseInt(lockTime) - now) / 1000);
                 showAlert(`ACCOUNT LOCKED: Too many failed attempts. Try again in ${secondsLeft}s.`, 'error');
@@ -1073,16 +1283,16 @@
             setLoading(true);
 
             try {
-                // Fetch user record from Supabase
+                // Safe query using .maybeSingle() to prevent Supabase 406 REST errors
                 const { data: user, error } = await supabase
                     .from('users')
                     .select('*')
                     .eq('username', username)
-                    .single();
+                    .maybeSingle();
 
                 let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
 
-                // Invalid user or incorrect password scenario
+                // If user doesn't exist OR password doesn't match
                 if (error || !user || !(user.password_hash === password || user.password === password)) {
                     failedCount += 1;
                     localStorage.setItem(attemptsKey, failedCount);
@@ -1090,11 +1300,11 @@
                     if (failedCount >= 3) {
                         const lockDuration = 30 * 1000; // 30-second lockout penalty
                         localStorage.setItem(lockKey, (now + lockDuration).toString());
-                        localStorage.removeItem(attemptsKey); // Reset attempt counter after lockout applies
+                        localStorage.removeItem(attemptsKey);
 
                         showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account temporarily locked for 30s.', 'error');
 
-                        // Audit Trail: Record Lockdown trigger in Supabase
+                        // Audit Trail Log in Supabase
                         await supabase.from('log_trails').insert([
                             {
                                 user_id: user ? user.user_id : null,
@@ -1111,15 +1321,14 @@
                     return;
                 }
 
-                // Check account status in Supabase database
+                // Check disabled status
                 if (user.status === 'inactive' || user.status === 'disabled') {
                     showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
                     setLoading(false);
                     return;
                 }
 
-                // --- LOGIN SUCCESSFUL ---
-                // Reset attempt trackers upon correct password
+                // SUCCESSFUL LOGIN
                 localStorage.removeItem(attemptsKey);
                 localStorage.removeItem(lockKey);
 
@@ -1135,7 +1344,6 @@
 
                 localStorage.setItem('bayaniwatch_user', JSON.stringify(sessionUser));
 
-                // Log successful login to audit trail
                 await supabase.from('log_trails').insert([
                     {
                         user_id: user.user_id,
@@ -1310,7 +1518,7 @@
                     .from('incidents')
                     .select(`
                         incident_id, title, category, description,
-                        latitude, longitude, location_address, status, reported_at,
+                        latitude, longitude, location_address, status, reported_at, image_url,
                         users ( full_name )
                     `)
                     .order('reported_at', { ascending: false });
@@ -1361,6 +1569,13 @@
                     </div>
                     <h4 class="text-xs font-bold text-navy leading-tight">${item.title}</h4>
                     <p class="text-[10px] text-slate-500 leading-snug">${item.description}</p>
+                    
+                    ${item.image_url ? `
+                        <div class="mt-1 rounded-xl overflow-hidden border border-slate-200">
+                            <img src="${item.image_url}" class="w-full h-28 object-cover cursor-pointer" onclick="window.open('${item.image_url}', '_blank')">
+                        </div>
+                    ` : ''}
+
                     <div class="flex justify-between items-center mt-1 pt-1.5 border-t border-slate-100 text-[9px] text-slate-400">
                         <span><i class="fa-solid fa-location-dot text-skyblue mr-1"></i>${item.location_address}</span>
                         <span>${item.reported_at ? new Date(item.reported_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
@@ -1398,7 +1613,7 @@
 
                 if (error) throw error;
 
-                // Step 2 Audit Trail: Log status update
+                // Audit Trail: Log status update
                 await supabase.from('log_trails').insert([
                     {
                         user_id: currentUser ? currentUser.user_id : null,
@@ -1429,7 +1644,7 @@
 
                 if (deleteError) throw deleteError;
 
-                // Step 2 Audit Trail: Log archive action
+                // Audit Trail: Log archive action
                 await supabase.from('log_trails').insert([
                     {
                         user_id: currentUser.user_id,
@@ -1467,6 +1682,7 @@
         }
 
         function closeCreateIncidentModal() {
+            stopCameraStream();
             document.getElementById('createIncidentModal').classList.add('hidden');
         }
 
@@ -1540,65 +1756,65 @@
         }
 
         async function submitNewIncident(e) {
-    if (e) e.preventDefault();
-    
-    const submitBtn = document.getElementById('submitIncidentBtn');
-    submitBtn.disabled = true;
-    submitBtn.innerText = "Uploading & Saving...";
+            if (e) e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitIncidentBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Uploading & Saving...";
 
-    let uploadedImageUrl = null;
+            let uploadedImageUrl = null;
 
-    try {
-        // Upload photo to Supabase storage if captured
-        if (capturedBlobData) {
-            const fileName = `incident_${Date.now()}.jpg`;
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('incident-photos')
-                .upload(fileName, capturedBlobData, { contentType: 'image/jpeg' });
+            try {
+                // Upload photo to Supabase storage if captured
+                if (capturedBlobData) {
+                    const fileName = `incident_${Date.now()}.jpg`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('incident-photos')
+                        .upload(fileName, capturedBlobData, { contentType: 'image/jpeg' });
 
-            if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage
-                .from('incident-photos')
-                .getPublicUrl(fileName);
+                    const { data: urlData } = supabase.storage
+                        .from('incident-photos')
+                        .getPublicUrl(fileName);
 
-            uploadedImageUrl = urlData.publicUrl;
-        }
-
-        // Insert incident record into Supabase
-        const { error } = await supabase
-            .from('incidents')
-            .insert([
-                {
-                    user_id: currentUser ? currentUser.user_id : null,
-                    title: document.getElementById('newTitle').value.trim(),
-                    category: document.getElementById('newCategory').value,
-                    description: document.getElementById('newDescription').value.trim(),
-                    location_address: document.getElementById('newAddress').value.trim(),
-                    latitude: parseFloat(document.getElementById('newLatitude').value),
-                    longitude: parseFloat(document.getElementById('newLongitude').value),
-                    image_url: uploadedImageUrl
+                    uploadedImageUrl = urlData.publicUrl;
                 }
-            ]);
 
-        if (error) throw error;
+                // Insert incident record into Supabase
+                const { error } = await supabase
+                    .from('incidents')
+                    .insert([
+                        {
+                            user_id: currentUser ? currentUser.user_id : null,
+                            title: document.getElementById('newTitle').value.trim(),
+                            category: document.getElementById('newCategory').value,
+                            description: document.getElementById('newDescription').value.trim(),
+                            location_address: document.getElementById('newAddress').value.trim(),
+                            latitude: parseFloat(document.getElementById('newLatitude').value),
+                            longitude: parseFloat(document.getElementById('newLongitude').value),
+                            image_url: uploadedImageUrl
+                        }
+                    ]);
 
-        // Reset forms and camera
-        stopCameraStream();
-        capturedBlobData = null;
-        closeCreateIncidentModal();
-        document.getElementById('createIncidentForm').reset();
+                if (error) throw error;
 
-        await fetchIncidents();
-        showAppToast('REPORT FILED', 'Incident report with photo evidence submitted!');
+                // Reset forms and camera
+                stopCameraStream();
+                capturedBlobData = null;
+                closeCreateIncidentModal();
+                document.getElementById('createIncidentForm').reset();
 
-    } catch (err) {
-        showAppToast('SUBMIT FAILED', err.message, true);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = "Submit Log";
-    }
-}
+                await fetchIncidents();
+                showAppToast('REPORT FILED', 'Incident report with photo evidence submitted!');
+
+            } catch (err) {
+                showAppToast('SUBMIT FAILED', err.message, true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Log";
+            }
+        }
 
         // --- GIS MAPPER TAB ---
         function initLeafletMap() {
@@ -1638,6 +1854,7 @@
                             </span>
                             <h4 class="text-xs font-bold text-navy leading-snug">${inc.title}</h4>
                             <p class="text-[10px] text-slate-600 mt-1"><strong>Cat:</strong> ${inc.category}</p>
+                            ${inc.image_url ? `<img src="${inc.image_url}" class="w-full h-20 object-cover rounded mt-1">` : ''}
                             <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-skyblue"></i> ${inc.location_address}</p>
                         </div>
                     `);
@@ -1653,6 +1870,15 @@
                 if (!isNaN(sosLat) && !isNaN(sosLng)) {
                     const sosMapPin = L.marker([sosLat, sosLng]).addTo(mapMarkersGroup);
 
+                    let mediaHtml = '';
+                    if (sosData.media_url) {
+                        if (sosData.media_type === 'video') {
+                            mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-20 object-cover rounded mt-1"></video>`;
+                        } else {
+                            mediaHtml = `<img src="${sosData.media_url}" class="w-full h-20 object-cover rounded mt-1">`;
+                        }
+                    }
+
                     sosMapPin.bindPopup(`
                         <div class="p-1 max-w-[200px]">
                             <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
@@ -1660,6 +1886,7 @@
                             </span>
                             <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
                             <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
+                            ${mediaHtml}
                             <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
                             <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
                         </div>
