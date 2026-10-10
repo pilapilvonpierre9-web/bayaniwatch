@@ -781,40 +781,92 @@
             showAppToast('OFFLINE MODE', 'No internet connection. Reports will be saved locally.', true);
         });
 
-        async function syncOfflineReports() {
-            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
-            if (offlineQueue.length === 0) return;
-
-            let remainingQueue = [];
-
-            for (let report of offlineQueue) {
-                try {
-                    const payload = { ...report };
-                    delete payload.localId;
-                    delete payload.reported_at;
-                    delete payload.status;
-
-                    const { error } = await supabase.from('incidents').insert([payload]);
-
-                    if (error) {
-                        console.error("Supabase sync error:", error.message);
-                        remainingQueue.push(report);
-                    }
-                } catch (err) {
-                    console.error("Sync fetch error:", err);
-                    remainingQueue.push(report);
-                }
-            }
-
-            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
-
-            if (remainingQueue.length === 0) {
-                showAppToast('SYNC COMPLETE', 'Offline reports successfully synced!');
-                if (typeof fetchIncidents === 'function') {
-                    await fetchIncidents();
-                }
-            }
+// Helper to convert Base64 string back to Blob for storage upload
+function base64ToBlob(base64Data, contentType) {
+    const byteCharacters = atob(base64Data.split(',')[1]);
+    const byteArrays = [];
+    for (let i = 0; i < byteCharacters.length; i += 512) {
+        const slice = byteCharacters.slice(i, i + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let j = 0; j < slice.length; j++) {
+            byteNumbers[j] = slice.charCodeAt(j);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    return new Blob(byteArrays, { type: contentType });
+}
+
+async function syncOfflineReports() {
+    let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+    if (offlineQueue.length === 0) return;
+
+    let remainingQueue = [];
+
+    for (let report of offlineQueue) {
+        try {
+            let uploadedImageUrl = report.image_url || null;
+
+            // 1. If a local Base64 media exists, upload it to Supabase Storage first
+            if (report.local_media_base64) {
+                const isVideo = report.media_type === 'video';
+                const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
+                const ext = isVideo ? 'webm' : 'jpg';
+                const fileName = `incident_${Date.now()}.${ext}`;
+
+                const mediaBlob = base64ToBlob(report.local_media_base64, mimeType);
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('incident-photos')
+                    .upload(fileName, mediaBlob, {
+                        contentType: mimeType,
+                        upsert: true
+                    });
+
+                if (!uploadError) {
+                    const { data: urlData } = supabase.storage
+                        .from('incident-photos')
+                        .getPublicUrl(fileName);
+                    uploadedImageUrl = urlData.publicUrl;
+                } else {
+                    console.error("Storage upload error during sync:", uploadError.message);
+                }
+            }
+
+            // 2. Build explicit database payload
+            const payload = {
+                user_id: report.user_id,
+                title: report.title,
+                category: report.category,
+                description: report.description,
+                location_address: report.location_address,
+                latitude: report.latitude,
+                longitude: report.longitude,
+                image_url: uploadedImageUrl
+            };
+
+            // 3. Insert record into database
+            const { error } = await supabase.from('incidents').insert([payload]);
+
+            if (error) {
+                console.error("Supabase DB sync error:", error.message);
+                remainingQueue.push(report);
+            }
+        } catch (err) {
+            console.error("Sync process error:", err);
+            remainingQueue.push(report);
+        }
+    }
+
+    localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
+
+    if (remainingQueue.length === 0) {
+        showAppToast('SYNC COMPLETE', 'Offline reports with photos/videos successfully synced!');
+        if (typeof fetchIncidents === 'function') {
+            await fetchIncidents();
+        }
+    }
+}
 
         // --- BACKGROUND AUTO-SYNC INTERVAL ---
         setInterval(async () => {
@@ -2182,113 +2234,137 @@
                 });
             }
         }
+        // Helper to convert Blob/File to Base64 for Local Storage
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
 
-        async function submitNewIncident(e) {
-            if (e) e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitIncidentBtn');
-            const title = document.getElementById('newTitle').value.trim();
-            const category = document.getElementById('newCategory').value;
-            const description = document.getElementById('newDescription').value.trim();
-            const address = document.getElementById('newAddress').value.trim();
-            const lat = parseFloat(document.getElementById('newLatitude').value);
-            const lng = parseFloat(document.getElementById('newLongitude').value);
+async function submitNewIncident(e) {
+    if (e) e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitIncidentBtn');
+    const title = document.getElementById('newTitle').value.trim();
+    const category = document.getElementById('newCategory').value;
+    const description = document.getElementById('newDescription').value.trim();
+    const address = document.getElementById('newAddress').value.trim();
+    const lat = parseFloat(document.getElementById('newLatitude').value);
+    const lng = parseFloat(document.getElementById('newLongitude').value);
+    
+    // Extract captured media file (Blob)
+    const mediaFile = incidentMediaBlob || capturedBlobData;
 
-            if (!navigator.onLine) {
-                stageIncidentLocally(title, category, description, address, lat, lng, null);
-                return;
-            }
+    // IF OFFLINE: Stage report locally with converted Base64 media
+    if (!navigator.onLine) {
+        await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile);
+        return;
+    }
 
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Uploading & Saving...";
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Uploading & Saving...";
 
-            let uploadedImageUrl = null;
+    let uploadedImageUrl = null;
 
-            try {
-                if (incidentMediaBlob || capturedBlobData) {
-                    const mediaFile = incidentMediaBlob || capturedBlobData;
-                    const isVideo = incidentMediaType === 'video';
-                    const ext = isVideo ? 'webm' : 'jpg';
-                    const fileName = `incident_${Date.now()}.${ext}`;
+    try {
+        if (mediaFile) {
+            const isVideo = incidentMediaType === 'video';
+            const ext = isVideo ? 'webm' : 'jpg';
+            const fileName = `incident_${Date.now()}.${ext}`;
 
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('incident-photos')
-                        .upload(fileName, mediaFile, {
-                            contentType: isVideo ? 'video/webm' : 'image/jpeg',
-                            upsert: true
-                        });
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('incident-photos')
+                .upload(fileName, mediaFile, {
+                    contentType: isVideo ? 'video/webm' : 'image/jpeg',
+                    upsert: true
+                });
 
-                    if (uploadError) throw uploadError;
+            if (uploadError) throw uploadError;
 
-                    const { data: urlData } = supabase.storage
-                        .from('incident-photos')
-                        .getPublicUrl(fileName);
+            const { data: urlData } = supabase.storage
+                .from('incident-photos')
+                .getPublicUrl(fileName);
 
-                    uploadedImageUrl = urlData.publicUrl;
+            uploadedImageUrl = urlData.publicUrl;
+        }
+
+        const { error } = await supabase
+            .from('incidents')
+            .insert([
+                {
+                    user_id: currentUser ? currentUser.user_id : null,
+                    title: title,
+                    category: category,
+                    description: description,
+                    location_address: address,
+                    latitude: lat,
+                    longitude: lng,
+                    image_url: uploadedImageUrl
                 }
+            ]);
 
-                const { error } = await supabase
-                    .from('incidents')
-                    .insert([
-                        {
-                            user_id: currentUser ? currentUser.user_id : null,
-                            title: title,
-                            category: category,
-                            description: description,
-                            location_address: address,
-                            latitude: lat,
-                            longitude: lng,
-                            image_url: uploadedImageUrl
-                        }
-                    ]);
+        if (error) throw error;
 
-                if (error) throw error;
+        stopCameraStream();
+        capturedBlobData = null;
+        incidentMediaBlob = null;
+        closeCreateIncidentModal();
+        document.getElementById('createIncidentForm').reset();
 
-                stopCameraStream();
-                capturedBlobData = null;
-                incidentMediaBlob = null;
-                closeCreateIncidentModal();
-                document.getElementById('createIncidentForm').reset();
+        await fetchIncidents();
+        showAppToast('REPORT FILED', 'Incident report submitted successfully!');
 
-                await fetchIncidents();
-                showAppToast('REPORT FILED', 'Incident report submitted successfully!');
+    } catch (err) {
+        console.warn("Network error during upload. Saving offline locally...", err);
+        await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Log";
+    }
+}
 
-            } catch (err) {
-                console.warn("Network error. Falling back to local offline storage...", err);
-                stageIncidentLocally(title, category, description, address, lat, lng, uploadedImageUrl);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Submit Log";
-            }
+async function stageIncidentLocally(title, category, description, address, lat, lng, mediaFile) {
+    let base64Media = null;
+    
+    // Convert Blob media to Base64 string if present
+    if (mediaFile) {
+        try {
+            base64Media = await blobToBase64(mediaFile);
+        } catch (e) {
+            console.error("Failed to convert media blob to Base64:", e);
         }
+    }
 
-        function stageIncidentLocally(title, category, description, address, lat, lng, imageUrl) {
-            const offlinePayload = {
-                user_id: currentUser ? currentUser.user_id : null,
-                title: title,
-                category: category,
-                description: description,
-                location_address: address,
-                latitude: lat,
-                longitude: lng,
-                status: 'Pending',
-                image_url: imageUrl,
-                localId: 'local_' + Date.now(),
-                reported_at: new Date().toISOString()
-            };
+    const offlinePayload = {
+        user_id: currentUser ? currentUser.user_id : null,
+        title: title,
+        category: category,
+        description: description,
+        location_address: address,
+        latitude: lat,
+        longitude: lng,
+        status: 'Pending',
+        local_media_base64: base64Media,
+        media_type: incidentMediaType || 'photo',
+        localId: 'local_' + Date.now(),
+        reported_at: new Date().toISOString()
+    };
 
-            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
-            offlineQueue.push(offlinePayload);
-            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
+    let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+    offlineQueue.push(offlinePayload);
+    localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
 
-            stopCameraStream();
-            capturedBlobData = null;
-            incidentMediaBlob = null;
-            closeCreateIncidentModal();
-            document.getElementById('createIncidentForm').reset();
+    stopCameraStream();
+    capturedBlobData = null;
+    incidentMediaBlob = null;
+    closeCreateIncidentModal();
+    document.getElementById('createIncidentForm').reset();
 
-            showAppToast('SAVED OFFLINE', 'Report staged locally and will auto-sync later.', true);
-        }
+    showAppToast('SAVED OFFLINE', 'Report staged locally with media and will auto-sync later.', true);
+}
 
         // --- GIS MAPPER TAB ---
         function initLeafletMap() {
