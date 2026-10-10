@@ -146,7 +146,6 @@
                             </button>
                         </div>
                     
-                    <!-- PASTE FORGOT PASSWORD LINK HERE (Line 148) -->
                         <div class="text-right mt-1">
                             <button type="button" onclick="openForgotPasswordModal()" class="text-[10px] font-bold text-skyblue hover:underline">
                                 Forgot Password?
@@ -502,6 +501,7 @@
                 </div>
 
                 <!-- SOS Camera / Video Recording Module UI -->
+                <input type="file" id="nativeSosCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativeSosPhoto(event)">
                 <div>
                     <label class="block text-[9px] font-bold text-alertred uppercase mb-1">
                         <i class="fa-solid fa-camera mr-1"></i> SOS Media Evidence (Optional)
@@ -628,23 +628,24 @@
                             <option value="Others">Others</option>
                         </select>
                     </div>
-                    <!-- PASTE STEP 1 UI CODE HERE (Line 632) -->
-                <div class="flex gap-2 my-2">
-                    <button type="button" onclick="captureIncidentPhoto()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-camera"></i> Take Photo
-                    </button>
-                    <button type="button" id="record5sBtn" onclick="record5sIncidentVideo()" class="w-1/2 bg-red-50 text-red-600 font-bold text-xs py-2 rounded-xl border border-red-200 hover:bg-red-100 transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-video"></i> Record 5s Video
-                    </button>
-                </div>
 
-                <!-- Media Preview Box -->
-                <div id="incidentMediaPreview" class="hidden mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
-                    <img id="incidentPhotoImg" class="hidden w-full h-32 object-cover">
-                    <video id="incidentVideoPlayer" controls playsinline class="hidden w-full h-32 object-cover"></video>
-                </div>
+                    <div class="flex gap-2 my-2">
+                        <button type="button" onclick="triggerNativeCamera()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-camera"></i> Take Photo
+                        </button>
+                        <button type="button" id="record5sBtn" onclick="record5sIncidentVideo()" class="w-1/2 bg-red-50 text-red-600 font-bold text-xs py-2 rounded-xl border border-red-200 hover:bg-red-100 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-video"></i> Record 5s Video
+                        </button>
+                    </div>
+
+                    <!-- Media Preview Box -->
+                    <div id="incidentMediaPreview" class="hidden mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
+                        <img id="incidentPhotoImg" class="hidden w-full h-32 object-cover">
+                        <video id="incidentVideoPlayer" controls playsinline class="hidden w-full h-32 object-cover"></video>
+                    </div>
 
                     <!-- Incident Log Camera Capture Module -->
+                    <input type="file" id="nativeCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativePhoto(event)">
                     <div>
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
                         <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
@@ -658,7 +659,7 @@
                             <!-- Camera Controls -->
                             <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
                                 <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
-                                    <i class="fa-solid fa-camera mr-1"></i> Start Camera
+                                    <i class="fa-solid fa-camera mr-1"></i> Open Camera
                                 </button>
                                 <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
                                     <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
@@ -714,22 +715,7 @@
                 </div>
             </div>
         </div>
-        <!-- Modal: Logout Confirmation -->
-        <div id="logoutModal" class="hidden absolute inset-0 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-xl p-5 w-full max-w-[260px] text-center">
-                <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto mb-3 text-base">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <h3 class="text-sm font-bold text-navy mb-1">Confirm Logout</h3>
-                <p class="text-[11px] text-slate-500 mb-4 leading-tight">Are you sure you want to logout/sign out?</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="closeLogoutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition">Cancel</button>
-                    <button onclick="confirmLogout()" class="w-full bg-navy hover:bg-navy/90 text-slatewhite font-bold text-xs py-2 rounded-xl transition shadow-sm">Yes</button>
-                </div>
-            </div>
-        </div>
 
-        <!-- PASTE STEP 2 HERE (Line 695) -->
         <!-- Modal: Password Recovery via OTP -->
         <div id="forgotPasswordModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-[300px] space-y-3 relative">
@@ -779,6 +765,67 @@
 
     <!-- Application Controller -->
     <script>
+        // --- OFFLINE LOCAL STAGING ENGINE ---
+        function isOnline() {
+            return navigator.onLine;
+        }
+
+        window.addEventListener('online', () => {
+            console.log("Back online! Syncing queued offline reports...");
+            showAppToast('NETWORK RESTORED', 'Back online. Syncing offline reports...');
+            syncOfflineReports();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("Connection lost. Reports will be staged locally.");
+            showAppToast('OFFLINE MODE', 'No internet connection. Reports will be saved locally.', true);
+        });
+
+        async function syncOfflineReports() {
+            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            if (offlineQueue.length === 0) return;
+
+            let remainingQueue = [];
+
+            for (let report of offlineQueue) {
+                try {
+                    const payload = { ...report };
+                    delete payload.localId;
+                    delete payload.reported_at;
+                    delete payload.status;
+
+                    const { error } = await supabase.from('incidents').insert([payload]);
+
+                    if (error) {
+                        console.error("Supabase sync error:", error.message);
+                        remainingQueue.push(report);
+                    }
+                } catch (err) {
+                    console.error("Sync fetch error:", err);
+                    remainingQueue.push(report);
+                }
+            }
+
+            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
+
+            if (remainingQueue.length === 0) {
+                showAppToast('SYNC COMPLETE', 'Offline reports successfully synced!');
+                if (typeof fetchIncidents === 'function') {
+                    await fetchIncidents();
+                }
+            }
+        }
+
+        // --- BACKGROUND AUTO-SYNC INTERVAL ---
+        setInterval(async () => {
+            if (navigator.onLine) {
+                let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+                if (offlineQueue.length > 0) {
+                    await syncOfflineReports();
+                }
+            }
+        }, 5000);
+
         let currentUser = null;
         let globalIncidentsData = [];
         let leafletMap = null;
@@ -793,10 +840,10 @@
         // Incident Photo Camera State
         let mediaStreamInstance = null;
         let capturedBlobData = null;
-        // PASTE STEP 2 HERE (Line 796)
+
         // Incident Log Video State
         let incidentMediaBlob = null;
-        let incidentMediaType = null; // 'photo' or 'video'
+        let incidentMediaType = null;
 
         async function record5sIncidentVideo() {
             const btn = document.getElementById('record5sBtn');
@@ -844,7 +891,7 @@
 
             } catch (err) {
                 console.error("Camera/Mic Permission Error:", err);
-                showAppToast('CAMERA ERROR', 'Unable to access camera or microphone.', true);
+                triggerNativeCamera();
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-video"></i> Record 5s Video`;
             }
@@ -855,11 +902,10 @@
         let sosMediaRecorder = null;
         let sosRecordedChunks = [];
         let sosMediaBlob = null;
-        let sosMediaType = null; // 'photo' or 'video'
+        let sosMediaType = null;
+
         // --- ACCOUNT RECOVERY (OTP) FUNCTIONS ---
         let targetUserForReset = null;
-        
-        
 
         function openForgotPasswordModal() {
             document.getElementById('forgotPasswordModal').classList.remove('hidden');
@@ -899,7 +945,6 @@
             sendBtn.innerText = "Searching Account...";
 
             try {
-                // 1. Search for user in users table
                 const { data: users, error } = await supabase
                     .from('users')
                     .select('*')
@@ -914,11 +959,9 @@
 
                 targetUserForReset = users[0];
 
-                // 2. Generate 6-digit OTP code & 5-minute expiry timestamp
                 const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-                // 3. Save OTP entry into password_resets table
                 const { error: resetTableErr } = await supabase
                     .from('password_resets')
                     .insert([
@@ -934,7 +977,6 @@
 
                 if (resetTableErr) throw resetTableErr;
 
-                // 4. Update users table backup fields
                 await supabase
                     .from('users')
                     .update({ 
@@ -982,7 +1024,6 @@
             resetBtn.innerText = "Updating Database...";
 
             try {
-                // 1. Check latest unused OTP entry in password_resets table
                 const { data: resetRecords, error: resetFetchErr } = await supabase
                     .from('password_resets')
                     .select('*')
@@ -1010,13 +1051,11 @@
                     return;
                 }
 
-                // 2. Mark OTP entry as used in password_resets table
                 await supabase
                     .from('password_resets')
                     .update({ is_used: true })
                     .eq('id', resetRecord.id);
 
-                // 3. Update user's password in users table
                 const { error: updateErr } = await supabase
                     .from('users')
                     .update({
@@ -1028,7 +1067,6 @@
 
                 if (updateErr) throw updateErr;
 
-                // 4. Log audit trail entry
                 await supabase.from('log_trails').insert([
                     {
                         user_id: targetUserForReset.user_id,
@@ -1039,7 +1077,6 @@
 
                 showOtpAlert('SUCCESS! Password updated. Redirecting...', 'success');
 
-                // Store username locally before modal close clears targetUserForReset
                 const resetUsername = targetUserForReset.username;
 
                 setTimeout(() => {
@@ -1061,8 +1098,35 @@
                 resetBtn.innerText = "UPDATE PASSWORD";
             }
         }
+
+        // --- NATIVE CAMERA FALLBACK HANDLERS ---
+        function triggerNativeCamera() {
+            document.getElementById('nativeCamInput').click();
+        }
+
+        function handleNativePhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                capturedBlobData = file;
+                const preview = document.getElementById('photoPreview');
+                const video = document.getElementById('cameraStream');
+
+                preview.src = URL.createObjectURL(file);
+                video.classList.add('hidden');
+                preview.classList.remove('hidden');
+
+                document.getElementById('startCamBtn').classList.add('hidden');
+                document.getElementById('retakeCamBtn').classList.remove('hidden');
+            }
+        }
+
         // --- INCIDENT LOG CAMERA MODULE HANDLERS ---
         async function initCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                triggerNativeCamera();
+                return;
+            }
+
             try {
                 mediaStreamInstance = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment" }, 
@@ -1076,7 +1140,30 @@
                 document.getElementById('startCamBtn').classList.add('hidden');
                 document.getElementById('snapCamBtn').classList.remove('hidden');
             } catch (err) {
-                showAppToast('CAMERA ERROR', 'Unable to access camera permissions.', true);
+                console.error("Camera access error:", err);
+                triggerNativeCamera();
+            }
+        }
+
+        // --- NATIVE SOS CAMERA FALLBACK HANDLERS ---
+        function triggerNativeSosCamera() {
+            document.getElementById('nativeSosCamInput').click();
+        }
+
+        function handleNativeSosPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                sosMediaBlob = file;
+                sosMediaType = 'photo';
+                const preview = document.getElementById('sosPhotoPreview');
+                const video = document.getElementById('sosStream');
+
+                preview.src = URL.createObjectURL(file);
+                video.classList.add('hidden');
+                preview.classList.remove('hidden');
+
+                document.getElementById('startSosCamBtn').classList.add('hidden');
+                document.getElementById('resetSosCamBtn').classList.remove('hidden');
             }
         }
 
@@ -1120,10 +1207,15 @@
 
         // --- SOS CAMERA & VIDEO RECORDER HANDLERS ---
         async function initSosCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                triggerNativeSosCamera();
+                return;
+            }
+
             try {
                 sosStreamInstance = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment" }, 
-                    audio: true 
+                    audio: false 
                 });
                 const videoEl = document.getElementById('sosStream');
                 videoEl.srcObject = sosStreamInstance;
@@ -1136,7 +1228,8 @@
                 document.getElementById('snapSosPhotoBtn').classList.remove('hidden');
                 document.getElementById('recSosVideoBtn').classList.remove('hidden');
             } catch (err) {
-                showAppToast('CAMERA ERROR', 'Unable to access camera or microphone.', true);
+                console.error("SOS Camera error:", err);
+                triggerNativeSosCamera();
             }
         }
 
@@ -1225,7 +1318,7 @@
             }
         }
 
-        // 🔊 Initialize SOS Audio Alarm
+        // Initialize SOS Audio Alarm
         const sosAudio = new Audio('./alarm.mp3');
         sosAudio.loop = true;
 
@@ -1316,7 +1409,6 @@
             let uploadedMediaUrl = null;
 
             try {
-                // Upload SOS Photo or Video to Supabase Storage if recorded
                 if (sosMediaBlob) {
                     const isVideo = sosMediaType === 'video';
                     const ext = isVideo ? 'webm' : 'jpg';
@@ -1356,7 +1448,6 @@
                 const detailsInput = document.getElementById('sosModalDetails');
                 if (detailsInput) detailsInput.value = '';
 
-                // Insert into incidents table
                 const { error } = await supabase
                     .from('incidents')
                     .insert([
@@ -1375,7 +1466,6 @@
 
                 if (error) throw error;
 
-                // Log into sos_alerts table
                 await supabase.from('sos_alerts').insert([
                     {
                         user_id: sosPayload.user_id,
@@ -1388,7 +1478,6 @@
                     }
                 ]);
 
-                // Audit Trail: Log SOS action into log_trails
                 await supabase.from('log_trails').insert([
                     {
                         user_id: sosPayload.user_id,
@@ -1599,7 +1688,7 @@
             box.innerText = msg;
         }
 
-        // --- AUTHENTICATION HANDLERS (WITH 3-ATTEMPT LOCKOUT) ---
+        // --- AUTHENTICATION HANDLERS ---
         async function handleLogin(e) {
             if (e) e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -1610,14 +1699,12 @@
                 return;
             }
 
-            // Attempt & Lockout storage keys
             const attemptsKey = `bayaniwatch_attempts_${username.toLowerCase()}`;
             const lockKey = `bayaniwatch_lockuntil_${username.toLowerCase()}`;
 
             const lockTime = localStorage.getItem(lockKey);
             const now = Date.now();
 
-            // Check 30-second cooldown status
             if (lockTime && now < parseInt(lockTime)) {
                 const secondsLeft = Math.ceil((parseInt(lockTime) - now) / 1000);
                 showAlert(`ACCOUNT LOCKED: Too many failed attempts. Try again in ${secondsLeft}s.`, 'error');
@@ -1627,7 +1714,6 @@
             setLoading(true);
 
             try {
-                // Safe query using .maybeSingle() to prevent Supabase 406 REST errors
                 const { data: user, error } = await supabase
                     .from('users')
                     .select('*')
@@ -1636,19 +1722,17 @@
 
                 let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
 
-                // If user doesn't exist OR password doesn't match
                 if (error || !user || !(user.password_hash === password || user.password === password)) {
                     failedCount += 1;
                     localStorage.setItem(attemptsKey, failedCount);
 
                     if (failedCount >= 3) {
-                        const lockDuration = 30 * 1000; // 30-second lockout penalty
+                        const lockDuration = 30 * 1000;
                         localStorage.setItem(lockKey, (now + lockDuration).toString());
                         localStorage.removeItem(attemptsKey);
 
                         showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account temporarily locked for 30s.', 'error');
 
-                        // Audit Trail Log in Supabase
                         await supabase.from('log_trails').insert([
                             {
                                 user_id: user ? user.user_id : null,
@@ -1665,14 +1749,12 @@
                     return;
                 }
 
-                // Check disabled status
                 if (user.status === 'inactive' || user.status === 'disabled') {
                     showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
                     setLoading(false);
                     return;
                 }
 
-                // SUCCESSFUL LOGIN
                 localStorage.removeItem(attemptsKey);
                 localStorage.removeItem(lockKey);
 
@@ -1961,7 +2043,6 @@
 
                 if (error) throw error;
 
-                // Audit Trail: Log status update
                 await supabase.from('log_trails').insert([
                     {
                         user_id: currentUser ? currentUser.user_id : null,
@@ -1992,7 +2073,6 @@
 
                 if (deleteError) throw deleteError;
 
-                // Audit Trail: Log archive action
                 await supabase.from('log_trails').insert([
                     {
                         user_id: currentUser.user_id,
@@ -2107,68 +2187,107 @@
             if (e) e.preventDefault();
             
             const submitBtn = document.getElementById('submitIncidentBtn');
+            const title = document.getElementById('newTitle').value.trim();
+            const category = document.getElementById('newCategory').value;
+            const description = document.getElementById('newDescription').value.trim();
+            const address = document.getElementById('newAddress').value.trim();
+            const lat = parseFloat(document.getElementById('newLatitude').value);
+            const lng = parseFloat(document.getElementById('newLongitude').value);
+
+            if (!navigator.onLine) {
+                stageIncidentLocally(title, category, description, address, lat, lng, null);
+                return;
+            }
+
             submitBtn.disabled = true;
             submitBtn.innerText = "Uploading & Saving...";
 
             let uploadedImageUrl = null;
 
             try {
-                // Upload photo or 5s video to Supabase storage if captured
-        if (incidentMediaBlob || capturedBlobData) {
-            const mediaFile = incidentMediaBlob || capturedBlobData;
-            const isVideo = incidentMediaType === 'video';
-            const ext = isVideo ? 'webm' : 'jpg';
-            const fileName = `incident_${Date.now()}.${ext}`;
+                if (incidentMediaBlob || capturedBlobData) {
+                    const mediaFile = incidentMediaBlob || capturedBlobData;
+                    const isVideo = incidentMediaType === 'video';
+                    const ext = isVideo ? 'webm' : 'jpg';
+                    const fileName = `incident_${Date.now()}.${ext}`;
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('incident-photos')
-                .upload(fileName, mediaFile, {
-                    contentType: isVideo ? 'video/webm' : 'image/jpeg',
-                    upsert: true
-                });
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('incident-photos')
+                        .upload(fileName, mediaFile, {
+                            contentType: isVideo ? 'video/webm' : 'image/jpeg',
+                            upsert: true
+                        });
 
-            if (uploadError) throw uploadError;
+                    if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage
-                .from('incident-photos')
-                .getPublicUrl(fileName);
+                    const { data: urlData } = supabase.storage
+                        .from('incident-photos')
+                        .getPublicUrl(fileName);
 
-            uploadedImageUrl = urlData.publicUrl;
-        }
+                    uploadedImageUrl = urlData.publicUrl;
+                }
 
-                // Insert incident record into Supabase
                 const { error } = await supabase
                     .from('incidents')
                     .insert([
                         {
                             user_id: currentUser ? currentUser.user_id : null,
-                            title: document.getElementById('newTitle').value.trim(),
-                            category: document.getElementById('newCategory').value,
-                            description: document.getElementById('newDescription').value.trim(),
-                            location_address: document.getElementById('newAddress').value.trim(),
-                            latitude: parseFloat(document.getElementById('newLatitude').value),
-                            longitude: parseFloat(document.getElementById('newLongitude').value),
+                            title: title,
+                            category: category,
+                            description: description,
+                            location_address: address,
+                            latitude: lat,
+                            longitude: lng,
                             image_url: uploadedImageUrl
                         }
                     ]);
 
                 if (error) throw error;
 
-                // Reset forms and camera
                 stopCameraStream();
                 capturedBlobData = null;
+                incidentMediaBlob = null;
                 closeCreateIncidentModal();
                 document.getElementById('createIncidentForm').reset();
 
                 await fetchIncidents();
-                showAppToast('REPORT FILED', 'Incident report with photo evidence submitted!');
+                showAppToast('REPORT FILED', 'Incident report submitted successfully!');
 
             } catch (err) {
-                showAppToast('SUBMIT FAILED', err.message, true);
+                console.warn("Network error. Falling back to local offline storage...", err);
+                stageIncidentLocally(title, category, description, address, lat, lng, uploadedImageUrl);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = "Submit Log";
             }
+        }
+
+        function stageIncidentLocally(title, category, description, address, lat, lng, imageUrl) {
+            const offlinePayload = {
+                user_id: currentUser ? currentUser.user_id : null,
+                title: title,
+                category: category,
+                description: description,
+                location_address: address,
+                latitude: lat,
+                longitude: lng,
+                status: 'Pending',
+                image_url: imageUrl,
+                localId: 'local_' + Date.now(),
+                reported_at: new Date().toISOString()
+            };
+
+            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            offlineQueue.push(offlinePayload);
+            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
+
+            stopCameraStream();
+            capturedBlobData = null;
+            incidentMediaBlob = null;
+            closeCreateIncidentModal();
+            document.getElementById('createIncidentForm').reset();
+
+            showAppToast('SAVED OFFLINE', 'Report staged locally and will auto-sync later.', true);
         }
 
         // --- GIS MAPPER TAB ---
@@ -2296,6 +2415,10 @@
         }
 
         window.onload = async () => {
+            if (typeof syncOfflineReports === 'function') {
+                await syncOfflineReports();
+            }
+
             const saved = localStorage.getItem('bayaniwatch_user');
             if (saved) {
                 const user = JSON.parse(saved);
