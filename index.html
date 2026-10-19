@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BAYANIWATCH Mobile - Brgy. Danhug</title>
     
-    <!-- Prevents favicon.ico 404 error -->
+    <!-- Favicon -->
     <link rel="icon" href="data:,">
 
     <!-- Tailwind CSS CDN -->
@@ -283,7 +283,7 @@
                 </div>
 
                 <div class="p-4 space-y-4 flex-1">
-                    <!-- SOS Warning Banner -->
+                    <!-- SOS Warning Banner (Visible ONLY to Admin and Tanod) -->
                     <div id="sosWarningBanner" class="hidden bg-alertred border-2 border-red-700 rounded-2xl p-3.5 text-white shadow-lg animate-sos-alert">
                         <div class="flex items-start gap-3">
                             <div class="w-10 h-10 bg-white text-alertred rounded-xl flex items-center justify-center font-black text-lg shrink-0 shadow">
@@ -380,6 +380,7 @@
                             </h4>
                             <span class="text-[9px] bg-navy text-white px-2 py-0.5 rounded-full font-bold">CONTROL CENTER</span>
                         </div>
+                        
                         <div class="grid grid-cols-3 gap-2 text-center pt-1">
                             <div class="bg-white p-2 rounded-xl border border-slate-200">
                                 <span class="text-[9px] font-bold text-slate-400 block uppercase">Pending</span>
@@ -394,6 +395,11 @@
                                 <span id="adminResolvedCount" class="text-xs font-black text-safetygreen">0</span>
                             </div>
                         </div>
+
+                        <!-- Post Advisory Button for Admin -->
+                        <button onclick="openCreateAdvisoryModal()" class="w-full mt-2 bg-skyblue hover:bg-skyblue/90 text-white font-bold py-2 rounded-xl text-xs transition shadow flex items-center justify-center gap-1.5 active:scale-95">
+                            <i class="fa-solid fa-bullhorn"></i> Post New Barangay Advisory
+                        </button>
                     </div>
 
                     <!-- System Audit Log Trails -->
@@ -661,6 +667,49 @@
             </div>
         </div>
 
+        <!-- Modal: Post Barangay Advisory (Admin Only) -->
+        <div id="createAdvisoryModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[300px] space-y-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center font-bold text-xs">
+                            <i class="fa-solid fa-bullhorn"></i>
+                        </div>
+                        <h3 class="text-xs font-black text-navy uppercase">Post Official Advisory</h3>
+                    </div>
+                    <button onclick="closeCreateAdvisoryModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <form id="createAdvisoryForm" class="space-y-2.5" onsubmit="submitNewAdvisory(event)">
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Advisory Title</label>
+                        <input type="text" id="advisoryTitle" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="e.g. Scheduled Power Interruption">
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Category</label>
+                        <select id="advisoryCategory" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 font-medium">
+                            <option value="WEATHER">Weather / Calamity</option>
+                            <option value="SECURITY">Security Alert</option>
+                            <option value="HEALTH">Health Advisory</option>
+                            <option value="UTILITY">Water / Power Utility</option>
+                            <option value="GENERAL">General Notice</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Announcement Message</label>
+                        <textarea id="advisoryContent" required rows="3" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Write announcement details for residents..."></textarea>
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" onclick="closeCreateAdvisoryModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                        <button type="submit" id="submitAdvisoryBtn" class="w-1/2 bg-skyblue text-white py-2 rounded-xl text-xs font-black shadow uppercase">Publish</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Bottom Navigation Bar -->
         <div id="bottomNav" class="hidden bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center shrink-0 z-30">
             <button onclick="switchTab('home')" id="navHome" class="flex flex-col items-center text-skyblue text-[10px] font-bold">
@@ -861,8 +910,8 @@
             if (alertBox) alertBox.classList.add('hidden');
         }
 
-        // --- RESTORED AUDIO ALARM OBJECT (./alarm.mp3) ---
-        const sosAudio = new Audio('./alarm.mp3');
+        // --- RESTORED AUDIO ALARM OBJECT WITH CACHE BUSTING (./alarm.mp3) ---
+        const sosAudio = new Audio('./alarm.mp3?v=' + Date.now());
         sosAudio.loop = true;
 
         // Unlocks audio context on mobile Safari / Chrome on first screen interaction
@@ -886,45 +935,45 @@
         }
 
         // --- SUPABASE REALTIME SUBSCRIPTION ENGINE ---
-function subscribeToRealtimeEvents() {
-    if (!window.supabase) return;
+        function subscribeToRealtimeEvents() {
+            if (!window.supabase) return;
 
-    window.supabase
-        .channel('public:sos_alerts')
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
-            (payload) => {
-                const newSos = payload.new;
-                if (newSos && newSos.status === 'ACTIVE') {
-                    displayRealtimeSosBanner({
-                        sender: newSos.username || 'Resident',
-                        title: '🚨 CRITICAL SOS EMERGENCY',
-                        // Read dynamic details sent from resident modal
-                        description: newSos.details || 'Immediate assistance requested by resident!',
-                        address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
-                        lat: newSos.latitude,
-                        lng: newSos.longitude,
-                        time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        media_url: newSos.media_url,
-                        media_type: newSos.media_type
-                    });
-                }
-            }
-        )
-        .subscribe();
+            window.supabase
+                .channel('public:sos_alerts')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
+                    (payload) => {
+                        const newSos = payload.new;
+                        if (newSos && newSos.status === 'ACTIVE') {
+                            displayRealtimeSosBanner({
+                                sender: newSos.username || 'Resident',
+                                title: '🚨 CRITICAL SOS EMERGENCY',
+                                // Dynamic resolution of description/details from Realtime payload
+                                description: newSos.details || newSos.description || 'Immediate assistance requested by resident!',
+                                address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
+                                lat: newSos.latitude,
+                                lng: newSos.longitude,
+                                time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                media_url: newSos.media_url,
+                                media_type: newSos.media_type
+                            });
+                        }
+                    }
+                )
+                .subscribe();
 
-    window.supabase
-        .channel('public:incidents')
-        .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'incidents' },
-            async () => {
-                await fetchIncidents();
-            }
-        )
-        .subscribe();
-}
+            window.supabase
+                .channel('public:incidents')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'incidents' },
+                    async () => {
+                        await fetchIncidents();
+                    }
+                )
+                .subscribe();
+        }
 
         function displayRealtimeSosBanner(sosData) {
             if (!currentUser) {
@@ -934,7 +983,7 @@ function subscribeToRealtimeEvents() {
 
             if (!currentUser) return;
 
-            // Strict Role Guard: Only Tanods or Admins hear the alarm & see popup
+            // Strict Role Guard: Only Tanods or Admins hear the alarm & see popup banner
             const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
             if (!isOfficer) {
                 dismissSosBanner();
@@ -953,6 +1002,69 @@ function subscribeToRealtimeEvents() {
 
             sosBanner.classList.remove('hidden');
             startSirenAlarm();
+        }
+
+        // --- ADMIN BARANGAY ADVISORY CONTROLLER ---
+        function openCreateAdvisoryModal() {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
+                showAppToast('UNAUTHORIZED', 'Only Barangay Admins can post official advisories.', true);
+                return;
+            }
+            document.getElementById('createAdvisoryModal').classList.remove('hidden');
+        }
+
+        function closeCreateAdvisoryModal() {
+            document.getElementById('createAdvisoryModal').classList.add('hidden');
+            document.getElementById('createAdvisoryForm').reset();
+        }
+
+        async function submitNewAdvisory(e) {
+            if (e) e.preventDefault();
+
+            const title = document.getElementById('advisoryTitle').value.trim();
+            const category = document.getElementById('advisoryCategory').value;
+            const content = document.getElementById('advisoryContent').value.trim();
+            const submitBtn = document.getElementById('submitAdvisoryBtn');
+
+            if (!title || !content) return;
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Publishing...";
+
+            try {
+                const { error } = await supabase
+                    .from('announcements')
+                    .insert([
+                        {
+                            title: title,
+                            category: category,
+                            content: content,
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Admin',
+                        action: `Published Advisory: "${title}"`
+                    }
+                ]);
+
+                closeCreateAdvisoryModal();
+                await fetchAnnouncements();
+                if (typeof fetchLogTrails === 'function') fetchLogTrails();
+
+                showAppToast('ADVISORY PUBLISHED', 'New barangay announcement is now live for all residents.');
+
+            } catch (err) {
+                showAppToast('PUBLISH FAILED', err.message, true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Publish";
+            }
         }
 
         let pendingResolveIncidentId = null;
@@ -1078,7 +1190,7 @@ function subscribeToRealtimeEvents() {
                     .from('announcements')
                     .select('*')
                     .order('created_at', { ascending: false })
-                    .limit(3);
+                    .limit(5);
 
                 if (error || !data || data.length === 0) {
                     container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-1">No active barangay advisories.</p>`;
@@ -1822,19 +1934,19 @@ function subscribeToRealtimeEvents() {
 
                 if (error) throw error;
 
-               // Inside confirmAndBroadcastSos() -> update the sos_alerts insert block:
-await supabase.from('sos_alerts').insert([
-    {
-        user_id: currentUser ? currentUser.user_id : null,
-        username: currentUser ? currentUser.username : 'Resident',
-        latitude: lat,
-        longitude: lng,
-        status: 'ACTIVE',
-        details: details, // <-- Include typed description here
-        media_url: uploadedMediaUrl,
-        media_type: sosMediaType
-    }
-]);
+                // Pass details column to sos_alerts table
+                await supabase.from('sos_alerts').insert([
+                    {
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Resident',
+                        latitude: lat,
+                        longitude: lng,
+                        status: 'ACTIVE',
+                        details: details,
+                        media_url: uploadedMediaUrl,
+                        media_type: sosMediaType
+                    }
+                ]);
 
                 await supabase.from('log_trails').insert([
                     {
