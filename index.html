@@ -934,45 +934,64 @@
             sosAudio.currentTime = 0;
         }
 
-        // --- SUPABASE REALTIME SUBSCRIPTION ENGINE ---
+        let realtimeChannel = null;
+
+        // --- DUAL-CHANNEL REALTIME SUBSCRIPTION ENGINE ---
         function subscribeToRealtimeEvents() {
             if (!window.supabase) return;
 
-            window.supabase
-                .channel('public:sos_alerts')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
-                    (payload) => {
-                        const newSos = payload.new;
-                        if (newSos && newSos.status === 'ACTIVE') {
-                            displayRealtimeSosBanner({
-                                sender: newSos.username || 'Resident',
-                                title: '🚨 CRITICAL SOS EMERGENCY',
-                                // Dynamic resolution of description/details from Realtime payload
-                                description: newSos.details || newSos.description || 'Immediate assistance requested by resident!',
-                                address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
-                                lat: newSos.latitude,
-                                lng: newSos.longitude,
-                                time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                media_url: newSos.media_url,
-                                media_type: newSos.media_type
-                            });
-                        }
-                    }
-                )
-                .subscribe();
+            if (realtimeChannel) {
+                window.supabase.removeChannel(realtimeChannel);
+            }
 
-            window.supabase
-                .channel('public:incidents')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'incidents' },
-                    async () => {
-                        await fetchIncidents();
+            // Global WebSockets room for instant cross-device broadcast
+            realtimeChannel = window.supabase.channel('bayaniwatch_sos_room', {
+                config: { broadcast: { self: true } }
+            });
+
+            // 1. Instant WebSocket Broadcast Receiver (<50ms trigger)
+            realtimeChannel.on('broadcast', { event: 'sos_trigger' }, (response) => {
+                if (response && response.payload) {
+                    displayRealtimeSosBanner(response.payload);
+                }
+            });
+
+            // 2. Database Insert Event Listener (Postgres Fallback)
+            realtimeChannel.on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
+                (payload) => {
+                    const newSos = payload.new;
+                    if (newSos && newSos.status === 'ACTIVE') {
+                        const latVal = parseFloat(newSos.latitude) || 10.9613;
+                        const lngVal = parseFloat(newSos.longitude) || 124.6483;
+                        displayRealtimeSosBanner({
+                            sender: newSos.username || 'Resident',
+                            title: '🚨 CRITICAL SOS EMERGENCY',
+                            description: newSos.details || newSos.description || 'Immediate assistance requested!',
+                            address: `Purok near Lat: ${latVal.toFixed(4)}, Lng: ${lngVal.toFixed(4)}`,
+                            lat: latVal,
+                            lng: lngVal,
+                            time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            media_url: newSos.media_url,
+                            media_type: newSos.media_type
+                        });
                     }
-                )
-                .subscribe();
+                }
+            );
+
+            // 3. Database Incident Table Change Listener
+            realtimeChannel.on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'incidents' },
+                async () => {
+                    await fetchIncidents();
+                }
+            );
+
+            realtimeChannel.subscribe((status) => {
+                console.log("Supabase Realtime Channel Status:", status);
+            });
         }
 
         function displayRealtimeSosBanner(sosData) {
@@ -1900,7 +1919,7 @@
                 }
 
                 const sosPayload = {
-                    sender: currentUser ? currentUser.full_name : 'Resident User',
+                    sender: currentUser ? currentUser.username : 'Resident User',
                     title: category,
                     description: details,
                     address: `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`,
@@ -1916,6 +1935,16 @@
                 const detailsInput = document.getElementById('sosModalDetails');
                 if (detailsInput) detailsInput.value = '';
 
+                // 1. Send Instant WebSockets Broadcast to all connected phones/PCs
+                if (realtimeChannel) {
+                    realtimeChannel.send({
+                        type: 'broadcast',
+                        event: 'sos_trigger',
+                        payload: sosPayload
+                    });
+                }
+
+                // 2. Insert into Incidents Blotter
                 const { error } = await supabase
                     .from('incidents')
                     .insert([
@@ -1934,7 +1963,7 @@
 
                 if (error) throw error;
 
-                // Pass details column to sos_alerts table
+                // 3. Insert into sos_alerts table
                 await supabase.from('sos_alerts').insert([
                     {
                         user_id: currentUser ? currentUser.user_id : null,
