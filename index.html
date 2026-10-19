@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BAYANIWATCH Mobile - Brgy. Danhug</title>
+    <title>BAYANIWATCH - Brgy. Danhug Incident Blotter & Mapper</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:,">
@@ -17,12 +17,17 @@
             theme: {
                 extend: {
                     colors: {
-                        navy: '#0F2C59',       // Primary - Governance & Security
+                        navy: {
+                            DEFAULT: '#0F2C59', // Primary - Governance & Security
+                            dark: '#081A38',
+                            light: '#1B3B6F'
+                        },
                         skyblue: '#1E88E5',    // Secondary Accent - Digital Clarity
                         safetygreen: '#2E7D32',// Status - Resolved / Active
                         alertamber: '#FFB300', // Status - Pending / Warning
                         alertred: '#D32F2F',   // Status - Emergency / Danger
-                        slatewhite: '#F8FAFC'  // Neutral Base
+                        slatewhite: '#F8FAFC', // Neutral Base
+                        slatebg: '#F1F5F9'
                     }
                 }
             }
@@ -64,6 +69,10 @@
       .hide-scrollbar::-webkit-scrollbar { display: none; }
       .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
       .leaflet-container {
         width: 100%;
         height: 100%;
@@ -81,10 +90,221 @@
       }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center sm:p-4">
+<body class="min-h-screen bg-navy-dark text-slate-800 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
 
-    <!-- Mobile Screen Frame Container -->
-    <div class="w-full max-w-sm sm:max-w-xs md:max-w-sm h-screen sm:h-[760px] bg-white sm:rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col">
+    <!-- GLOBAL IN-APP TOAST NOTIFICATION BANNER -->
+    <div id="appToast" class="hidden fixed top-4 right-4 max-w-sm bg-navy text-white p-3.5 rounded-2xl shadow-2xl border border-skyblue/40 flex items-center gap-3 z-50 transition-all duration-300">
+        <div id="toastIconContainer" class="w-8 h-8 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-sm">
+            <i id="toastIcon" class="fa-solid fa-bell"></i>
+        </div>
+        <div class="flex-1">
+            <h5 id="toastTitle" class="text-xs font-bold leading-tight">Notification</h5>
+            <p id="toastMessage" class="text-[11px] text-slate-300 leading-tight mt-0.5">Message body...</p>
+        </div>
+    </div>
+
+    <!-- 1. ADMIN-ONLY DESKTOP CONTROL CENTER (FULL-WIDTH WEBSITE UI VISIBLE EXCLUSIVELY FOR ADMIN ROLE) -->
+    <div id="adminDashboardApp" class="hidden w-full min-h-screen bg-slatebg flex flex-col">
+
+        <!-- ADMIN TOP HEADER NAVBAR -->
+        <header class="bg-navy text-white h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-40 shadow-lg border-b border-navy-light">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-skyblue/20 border border-skyblue/40 rounded-xl flex items-center justify-center text-skyblue shadow-inner">
+                    <i class="fa-solid fa-shield-halved text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-black text-base md:text-lg tracking-tight">BAYANIWATCH</h1>
+                        <span class="bg-skyblue/20 text-skyblue text-[10px] font-bold px-2 py-0.5 rounded-full border border-skyblue/30 uppercase">ADMIN CONTROL CENTER</span>
+                    </div>
+                    <p class="text-[10px] md:text-[11px] text-slate-300">Brgy. Danhug Incident Blotter & Mapper</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="triggerEmergencySOS()" class="bg-alertred hover:bg-red-700 text-white text-xs font-black px-3.5 py-1.5 rounded-xl transition shadow active:scale-95 uppercase flex items-center gap-1.5">
+                    <i class="fa-solid fa-bell animate-pulse"></i> Send SOS
+                </button>
+
+                <div class="flex items-center gap-3 border-l border-slate-700 pl-3">
+                    <div class="w-9 h-9 bg-skyblue text-white rounded-xl flex items-center justify-center font-bold text-sm shadow">
+                        <span id="adminHeaderAvatar">A</span>
+                    </div>
+                    <div class="hidden lg:block text-left leading-tight">
+                        <span id="adminHeaderUserName" class="block font-bold text-xs text-white">Admin User</span>
+                        <span class="block text-[10px] text-skyblue uppercase font-semibold">BARANGAY ADMIN</span>
+                    </div>
+                    <button onclick="openLogoutModal()" class="text-slate-400 hover:text-alertred transition ml-1" title="Sign Out">
+                        <i class="fa-solid fa-power-off text-base"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD CONTENT BODY -->
+        <div class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+
+            <!-- REALTIME SOS WARNING BANNER (DESKTOP VIEW) -->
+            <div id="adminSosWarningBanner" class="hidden bg-alertred border-2 border-red-700 rounded-2xl p-5 text-white shadow-2xl animate-sos-alert">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-white text-alertred rounded-2xl flex items-center justify-center font-black text-2xl shrink-0 shadow-md">
+                            <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <h3 class="text-xs md:text-sm font-black tracking-wider uppercase bg-red-950 px-2.5 py-0.5 rounded">🚨 CRITICAL SOS EMERGENCY ALERT</h3>
+                                <span id="adminSosTime" class="text-xs bg-red-900 px-2 py-0.5 rounded font-mono font-bold">JUST NOW</span>
+                            </div>
+                            <p id="adminSosSender" class="text-xs font-bold mt-1 text-red-100">Reported by: Loading...</p>
+                            <div id="adminSosMessage" class="text-xs bg-red-950/60 p-2.5 rounded-xl my-2 border border-red-500/30 font-medium">
+                                Emergency details loading...
+                            </div>
+                            <p id="adminSosAddress" class="text-xs text-red-100">
+                                <i class="fa-solid fa-location-dot text-white mr-1"></i> Location details loading...
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="dispatchResponder()" class="bg-white text-alertred hover:bg-red-50 text-xs font-black px-4 py-2.5 rounded-xl shadow active:scale-95 uppercase flex items-center gap-1.5">
+                            <i class="fa-solid fa-person-running text-sm"></i> Dispatch Tanod
+                        </button>
+                        <button onclick="locateSosOnMap()" class="bg-red-900 hover:bg-red-950 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5">
+                            <i class="fa-solid fa-map-pin"></i> View Map Pin
+                        </button>
+                        <button onclick="dismissSosBanner()" class="bg-red-950/80 text-red-200 text-xs px-3 py-2.5 rounded-xl hover:text-white">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- METRICS CARDS OVERVIEW -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Total Reports</p>
+                        <h3 id="statTotalIncidents" class="text-xl md:text-2xl font-black text-navy mt-1">--</h3>
+                    </div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-navy/10 text-navy rounded-2xl flex items-center justify-center text-lg md:text-xl">
+                        <i class="fa-solid fa-folder-tree"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Action</p>
+                        <h3 id="adminPendingCountDesktop" class="text-xl md:text-2xl font-black text-alertamber mt-1">--</h3>
+                    </div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-lg md:text-xl">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">In Progress</p>
+                        <h3 id="adminProgressCountDesktop" class="text-xl md:text-2xl font-black text-skyblue mt-1">--</h3>
+                    </div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-100 text-skyblue rounded-2xl flex items-center justify-center text-lg md:text-xl">
+                        <i class="fa-solid fa-person-running"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Resolved Cases</p>
+                        <h3 id="adminResolvedCountDesktop" class="text-xl md:text-2xl font-black text-safetygreen mt-1">--</h3>
+                    </div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-100 text-safetygreen rounded-2xl flex items-center justify-center text-lg md:text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DESKTOP GRID LAYOUT -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- BLOTTER INCIDENT LOGS FEED -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-4 md:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h2 class="font-bold text-base text-navy flex items-center gap-2">
+                                    <i class="fa-solid fa-list-ul text-skyblue"></i> Incident Blotter Logs
+                                </h2>
+                                <p class="text-xs text-slate-500">Real-time incident blotter and response manager</p>
+                            </div>
+                            
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <input type="text" id="adminSearchInput" onkeyup="filterIncidents()" placeholder="Search incidents..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-skyblue w-full sm:w-48">
+                                <select id="adminStatusFilter" onchange="filterIncidents()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none">
+                                    <option value="ALL">All Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Resolved">Resolved</option>
+                                </select>
+                                <button onclick="openCreateIncidentModal()" class="bg-navy hover:bg-navy-light text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 whitespace-nowrap">
+                                    <i class="fa-solid fa-plus"></i> New Log
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="adminIncidentsList" class="p-4 space-y-3">
+                            <p class="text-xs text-slate-400 text-center py-6">Loading incident records...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIDEBAR: MAP, ADVISORIES, & AUDIT TRAILS -->
+                <div class="space-y-6">
+                    <!-- GIS Map Panel -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <h3 class="font-bold text-xs text-navy uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-map-location-dot text-skyblue"></i> Brgy. GIS Incident Map
+                            </h3>
+                            <button onclick="recenterMap()" class="text-[10px] text-skyblue font-bold hover:underline">Center Map</button>
+                        </div>
+                        <div class="h-64 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative">
+                            <div id="adminLeafletMapContainer" class="w-full h-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- Official Advisories Panel -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <h3 class="font-bold text-xs text-navy uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-bullhorn text-skyblue"></i> Official Advisories
+                            </h3>
+                            <button onclick="openCreateAdvisoryModal()" class="text-[10px] bg-skyblue/10 text-skyblue hover:bg-skyblue hover:text-white font-bold px-2.5 py-1 rounded-lg transition">
+                                + Post Advisory
+                            </button>
+                        </div>
+                        <div id="adminAnnouncementsList" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                            <p class="text-xs text-slate-400 text-center py-4">Loading advisories...</p>
+                        </div>
+                    </div>
+
+                    <!-- System Audit Trails Panel -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <h3 class="font-bold text-xs text-navy uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-list-check text-skyblue"></i> System Audit Trails
+                            </h3>
+                            <button onclick="fetchLogTrails()" class="text-[10px] text-skyblue font-bold hover:underline">Refresh</button>
+                        </div>
+                        <div id="adminLogTrailsList" class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar text-[11px]">
+                            <p class="text-xs text-slate-400 text-center py-4">Loading audit logs...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. RESIDENT & TANOD MOBILE FRAME CONTAINER (APP UI FOR RESIDENTS AND TANODS) -->
+    <div id="mobileAppContainer" class="w-full max-w-sm sm:max-w-xs md:max-w-sm h-screen sm:h-[760px] bg-white sm:rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col my-auto border border-slate-200">
         
         <!-- Status Bar -->
         <div class="bg-navy text-slatewhite text-[11px] px-6 pt-3 pb-1 flex justify-between items-center font-medium z-30 shrink-0">
@@ -93,17 +313,6 @@
                 <i class="fa-solid fa-signal"></i>
                 <i class="fa-solid fa-wifi"></i>
                 <i class="fa-solid fa-battery-full text-xs text-safetygreen"></i>
-            </div>
-        </div>
-
-        <!-- In-App Toast Notification Banner -->
-        <div id="appToast" class="hidden absolute top-12 left-4 right-4 bg-navy text-white p-3 rounded-2xl shadow-xl border border-skyblue/30 flex items-center gap-3 z-50 transition-all duration-300">
-            <div id="toastIconContainer" class="w-7 h-7 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-xs">
-                <i id="toastIcon" class="fa-solid fa-bell"></i>
-            </div>
-            <div class="flex-1">
-                <h5 id="toastTitle" class="text-xs font-bold leading-tight">Notification</h5>
-                <p id="toastMessage" class="text-[10px] text-slate-300 leading-tight mt-0.5">Message body...</p>
             </div>
         </div>
 
@@ -283,7 +492,7 @@
                 </div>
 
                 <div class="p-4 space-y-4 flex-1">
-                    <!-- SOS Warning Banner (Visible ONLY to Admin and Tanod) -->
+                    <!-- SOS Warning Banner (Visible ONLY to Officers) -->
                     <div id="sosWarningBanner" class="hidden bg-alertred border-2 border-red-700 rounded-2xl p-3.5 text-white shadow-lg animate-sos-alert">
                         <div class="flex items-start gap-3">
                             <div class="w-10 h-10 bg-white text-alertred rounded-xl flex items-center justify-center font-black text-lg shrink-0 shadow">
@@ -545,171 +754,6 @@
 
         </div>
 
-        <!-- Modal: Resolution Proof & Notes -->
-        <div id="resolveModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[290px] space-y-3">
-                <div class="flex items-center gap-2 border-b pb-2">
-                    <div class="w-8 h-8 bg-safetygreen/20 text-safetygreen rounded-lg flex items-center justify-center text-xs font-bold">
-                        <i class="fa-solid fa-check-circle"></i>
-                    </div>
-                    <h3 class="text-xs font-black text-navy uppercase">Mark Incident Resolved</h3>
-                </div>
-
-                <div>
-                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Resolution Summary / Action Taken</label>
-                    <textarea id="resolutionNotesInput" rows="2" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50" placeholder="Describe how the situation was handled..."></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Upload Resolution Photo (Optional)</label>
-                    <input type="file" id="resolutionImageInput" accept="image/*" class="w-full text-[10px] text-slate-500 border rounded-lg p-1">
-                </div>
-
-                <div class="flex gap-2 pt-1">
-                    <button type="button" onclick="closeResolveModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
-                    <button type="button" onclick="confirmResolutionSubmit()" class="w-1/2 bg-safetygreen text-white py-2 rounded-xl text-xs font-black shadow uppercase">Confirm</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: SOS Request -->
-        <div id="sosInputModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[300px] space-y-2.5">
-                <div class="flex items-center gap-2 border-b pb-2">
-                    <div class="w-7 h-7 bg-alertred text-white rounded-lg flex items-center justify-center font-bold text-xs">
-                        <i class="fa-solid fa-bell"></i>
-                    </div>
-                    <h3 class="text-xs font-black text-navy uppercase">Emergency SOS Request</h3>
-                </div>
-
-                <div>
-                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Emergency Category</label>
-                    <select id="sosModalCategory" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 font-medium">
-                        <option value="Medical Emergency">Medical Emergency</option>
-                        <option value="Physical Hazard / Fight">Physical Hazard / Fight</option>
-                        <option value="Fire Alarm">Fire Alarm</option>
-                        <option value="Theft / Intruder">Theft / Intruder</option>
-                        <option value="Urgent Tanod Dispatch">Urgent Tanod Dispatch</option>
-                    </select>
-                </div>
-
-                <!-- SOS Camera Module UI -->
-                <input type="file" id="nativeSosCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativeSosPhoto(event)">
-                <div>
-                    <label class="block text-[9px] font-bold text-alertred uppercase mb-1">
-                        <i class="fa-solid fa-camera mr-1"></i> SOS Media Evidence (Optional)
-                    </label>
-                    <div class="relative bg-black rounded-xl overflow-hidden h-32 flex items-center justify-center border border-red-300">
-                        <video id="sosStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                        <canvas id="sosCanvas" class="hidden"></canvas>
-                        <img id="sosPhotoPreview" class="hidden w-full h-full object-cover" alt="SOS Photo Evidence">
-                        <video id="sosVideoPreview" controls class="hidden w-full h-full object-cover"></video>
-                        
-                        <div id="sosRecBadge" class="hidden absolute top-2 left-2 bg-red-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse z-20">
-                            <span class="w-2 h-2 rounded-full bg-white"></span> REC <span id="sosRecTimer">00:05</span>
-                        </div>
-
-                        <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 px-2 z-10">
-                            <button type="button" id="startSosCamBtn" onclick="initSosCamera()" class="bg-red-700/80 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-lg font-bold backdrop-blur-xs">
-                                <i class="fa-solid fa-camera mr-1"></i> Open Cam
-                            </button>
-                            <button type="button" id="snapSosPhotoBtn" onclick="captureSosPhoto()" class="hidden bg-slate-800 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
-                                <i class="fa-solid fa-circle-dot mr-1"></i> Photo
-                            </button>
-                            <button type="button" id="recSosVideoBtn" onclick="recordSosVideo()" class="hidden bg-red-600 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
-                                <i class="fa-solid fa-video mr-1"></i> 5s Clip
-                            </button>
-                            <button type="button" id="resetSosCamBtn" onclick="resetSosMedia()" class="hidden bg-slate-700/80 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
-                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Emergency Details / Notes</label>
-                    <textarea id="sosModalDetails" rows="2" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50" placeholder="e.g., Need immediate assistance at Purok 3 near chapel!"></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Pinpoint Emergency Location</label>
-                    <div id="sosMapContainer" style="height: 100px; width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; overflow: hidden;"></div>
-                    <input type="hidden" id="sosLatitude" value="10.9613">
-                    <input type="hidden" id="sosLongitude" value="124.6483">
-                </div>
-
-                <div class="flex gap-2 pt-1">
-                    <button type="button" onclick="closeSosModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
-                    <button type="button" onclick="confirmAndBroadcastSos()" class="w-1/2 bg-alertred text-white py-2 rounded-xl text-xs font-black shadow uppercase">Send SOS</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: In-App Tanod Dispatch -->
-        <div id="dispatchModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[280px] space-y-3">
-                <div class="flex items-center gap-2 border-b pb-2">
-                    <div class="w-8 h-8 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center text-xs font-bold">
-                        <i class="fa-solid fa-person-running"></i>
-                    </div>
-                    <h3 class="text-xs font-black text-navy uppercase">Dispatch Responder</h3>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Select / Enter Responder Unit</label>
-                    <input type="text" id="dispatchUnitInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-skyblue" placeholder="e.g. Tanod Patrol Unit 1" value="Tanod Patrol Unit 1">
-                </div>
-
-                <div class="flex gap-2 pt-1">
-                    <button type="button" onclick="closeDispatchModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
-                    <button type="button" onclick="confirmDispatchSubmit()" class="w-1/2 bg-skyblue text-white py-2 rounded-xl text-xs font-black shadow uppercase">Confirm</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: Post Barangay Advisory (Admin Only) -->
-        <div id="createAdvisoryModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[300px] space-y-3">
-                <div class="flex justify-between items-center border-b pb-2">
-                    <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center font-bold text-xs">
-                            <i class="fa-solid fa-bullhorn"></i>
-                        </div>
-                        <h3 class="text-xs font-black text-navy uppercase">Post Official Advisory</h3>
-                    </div>
-                    <button onclick="closeCreateAdvisoryModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <form id="createAdvisoryForm" class="space-y-2.5" onsubmit="submitNewAdvisory(event)">
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Advisory Title</label>
-                        <input type="text" id="advisoryTitle" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="e.g. Scheduled Power Interruption">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Category</label>
-                        <select id="advisoryCategory" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 font-medium">
-                            <option value="WEATHER">Weather / Calamity</option>
-                            <option value="SECURITY">Security Alert</option>
-                            <option value="HEALTH">Health Advisory</option>
-                            <option value="UTILITY">Water / Power Utility</option>
-                            <option value="GENERAL">General Notice</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Announcement Message</label>
-                        <textarea id="advisoryContent" required rows="3" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Write announcement details for residents..."></textarea>
-                    </div>
-
-                    <div class="flex gap-2 pt-1">
-                        <button type="button" onclick="closeCreateAdvisoryModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
-                        <button type="submit" id="submitAdvisoryBtn" class="w-1/2 bg-skyblue text-white py-2 rounded-xl text-xs font-black shadow uppercase">Publish</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- Bottom Navigation Bar -->
         <div id="bottomNav" class="hidden bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center shrink-0 z-30">
             <button onclick="switchTab('home')" id="navHome" class="flex flex-col items-center text-skyblue text-[10px] font-bold">
@@ -733,168 +777,337 @@
             </button>
         </div>
 
-        <!-- Modal: Log Incident -->
-        <div id="createIncidentModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-            <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 w-full max-h-[95%] overflow-y-auto">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b">
-                    <h3 class="text-xs font-bold text-navy uppercase">Log Digital Incident Report</h3>
-                    <button onclick="closeCreateIncidentModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- SHARED GLOBAL MODALS -->
+
+    <!-- Modal: Resolution Proof & Notes -->
+    <div id="resolveModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md space-y-3">
+            <div class="flex items-center gap-2 border-b pb-2">
+                <div class="w-8 h-8 bg-safetygreen/20 text-safetygreen rounded-lg flex items-center justify-center text-xs font-bold">
+                    <i class="fa-solid fa-check-circle"></i>
                 </div>
-                <form id="createIncidentForm" class="space-y-3" onsubmit="submitNewIncident(event)">
-                    <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Title</label>
-                        <input type="text" id="newTitle" required class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Brief summary of incident">
+                <h3 class="text-xs font-black text-navy uppercase">Mark Incident Resolved</h3>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Resolution Summary / Action Taken</label>
+                <textarea id="resolutionNotesInput" rows="3" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Describe how the situation was handled..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Upload Resolution Photo (Optional)</label>
+                <input type="file" id="resolutionImageInput" accept="image/*" class="w-full text-[10px] text-slate-500 border rounded-xl p-2 bg-slate-50">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="closeResolveModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                <button type="button" onclick="confirmResolutionSubmit()" class="w-1/2 bg-safetygreen text-white py-2.5 rounded-xl text-xs font-black shadow uppercase">Confirm Resolution</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: SOS Request -->
+    <div id="sosInputModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md space-y-3">
+            <div class="flex items-center gap-2 border-b pb-2">
+                <div class="w-8 h-8 bg-alertred text-white rounded-lg flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <h3 class="text-xs font-black text-navy uppercase">Emergency SOS Request</h3>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Emergency Category</label>
+                <select id="sosModalCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 font-medium">
+                    <option value="Medical Emergency">Medical Emergency</option>
+                    <option value="Physical Hazard / Fight">Physical Hazard / Fight</option>
+                    <option value="Fire Alarm">Fire Alarm</option>
+                    <option value="Theft / Intruder">Theft / Intruder</option>
+                    <option value="Urgent Tanod Dispatch">Urgent Tanod Dispatch</option>
+                </select>
+            </div>
+
+            <!-- SOS Camera Module UI -->
+            <input type="file" id="nativeSosCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativeSosPhoto(event)">
+            <div>
+                <label class="block text-[10px] font-bold text-alertred uppercase mb-1">
+                    <i class="fa-solid fa-camera mr-1"></i> SOS Media Evidence (Optional)
+                </label>
+                <div class="relative bg-black rounded-xl overflow-hidden h-32 flex items-center justify-center border border-red-300">
+                    <video id="sosStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <canvas id="sosCanvas" class="hidden"></canvas>
+                    <img id="sosPhotoPreview" class="hidden w-full h-full object-cover" alt="SOS Photo Evidence">
+                    <video id="sosVideoPreview" controls class="hidden w-full h-full object-cover"></video>
+                    
+                    <div id="sosRecBadge" class="hidden absolute top-2 left-2 bg-red-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse z-20">
+                        <span class="w-2 h-2 rounded-full bg-white"></span> REC <span id="sosRecTimer">00:05</span>
                     </div>
 
-                    <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Category</label>
-                        <select id="newCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
-                            <option value="Noise Complaint">Noise Complaint</option>
-                            <option value="Theft">Theft</option>
-                            <option value="Medical Emergency">Medical Emergency</option>
-                            <option value="Fire Incident">Fire Incident</option>
-                            <option value="Public Disturbance">Public Disturbance</option>
-                            <option value="Traffic/Accident">Traffic/Accident</option>
-                            <option value="Others">Others</option>
-                        </select>
-                    </div>
-
-                    <!-- Anonymous Reporting Checkbox -->
-                    <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                        <input type="checkbox" id="isAnonymousInput" class="w-4 h-4 text-skyblue rounded border-slate-300 focus:ring-skyblue">
-                        <label for="isAnonymousInput" class="text-[10px] font-bold text-navy cursor-pointer">
-                            Report Anonymously <span class="text-slate-400 font-normal">(Hide my identity in blotter)</span>
-                        </label>
-                    </div>
-
-                    <div class="flex gap-2 my-2">
-                        <button type="button" onclick="triggerNativeCamera()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-camera"></i> Take Photo
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 px-2 z-10">
+                        <button type="button" id="startSosCamBtn" onclick="initSosCamera()" class="bg-red-700/80 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-lg font-bold backdrop-blur-xs">
+                            <i class="fa-solid fa-camera mr-1"></i> Open Cam
                         </button>
-                        <button type="button" id="record5sBtn" onclick="record5sIncidentVideo()" class="w-1/2 bg-red-50 text-red-600 font-bold text-xs py-2 rounded-xl border border-red-200 hover:bg-red-100 transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-video"></i> Record 5s Video
+                        <button type="button" id="snapSosPhotoBtn" onclick="captureSosPhoto()" class="hidden bg-slate-800 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                            <i class="fa-solid fa-circle-dot mr-1"></i> Photo
+                        </button>
+                        <button type="button" id="recSosVideoBtn" onclick="recordSosVideo()" class="hidden bg-red-600 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                            <i class="fa-solid fa-video mr-1"></i> 5s Clip
+                        </button>
+                        <button type="button" id="resetSosCamBtn" onclick="resetSosMedia()" class="hidden bg-slate-700/80 text-white text-[9px] px-2 py-1 rounded-lg font-bold">
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Reset
                         </button>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Media Preview Box -->
-                    <div id="incidentMediaPreview" class="hidden mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
-                        <img id="incidentPhotoImg" class="hidden w-full h-32 object-cover">
-                        <video id="incidentVideoPlayer" controls playsinline class="hidden w-full h-32 object-cover"></video>
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Emergency Details / Notes</label>
+                <textarea id="sosModalDetails" rows="2" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="e.g., Need immediate assistance at Purok 3 near chapel!"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Pinpoint Emergency Location</label>
+                <div id="sosMapContainer" style="height: 120px; width: 100%; border-radius: 0.75rem; border: 1px solid #cbd5e1; overflow: hidden;"></div>
+                <input type="hidden" id="sosLatitude" value="10.9613">
+                <input type="hidden" id="sosLongitude" value="124.6483">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="closeSosModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                <button type="button" onclick="confirmAndBroadcastSos()" class="w-1/2 bg-alertred text-white py-2.5 rounded-xl text-xs font-black shadow uppercase">Send SOS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: In-App Tanod Dispatch -->
+    <div id="dispatchModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm space-y-3">
+            <div class="flex items-center gap-2 border-b pb-2">
+                <div class="w-8 h-8 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center text-xs font-bold">
+                    <i class="fa-solid fa-person-running"></i>
+                </div>
+                <h3 class="text-xs font-black text-navy uppercase">Dispatch Responder</h3>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-navy uppercase mb-1">Select / Enter Responder Unit</label>
+                <input type="text" id="dispatchUnitInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-skyblue" placeholder="e.g. Tanod Patrol Unit 1" value="Tanod Patrol Unit 1">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="closeDispatchModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                <button type="button" onclick="confirmDispatchSubmit()" class="w-1/2 bg-skyblue text-white py-2.5 rounded-xl text-xs font-black shadow uppercase">Confirm Dispatch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Post Barangay Advisory -->
+    <div id="createAdvisoryModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md space-y-3">
+            <div class="flex justify-between items-center border-b pb-2">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-skyblue/20 text-skyblue rounded-lg flex items-center justify-center font-bold text-xs">
+                        <i class="fa-solid fa-bullhorn"></i>
                     </div>
+                    <h3 class="text-xs font-black text-navy uppercase">Post Official Advisory</h3>
+                </div>
+                <button onclick="closeCreateAdvisoryModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
 
-                    <!-- Incident Log Camera Capture Module -->
-                    <input type="file" id="nativeCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativePhoto(event)">
-                    <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
-                        <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
-                            <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
-                            <canvas id="cameraCanvas" class="hidden"></canvas>
-                            <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
-                            
-                            <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
-                                <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
-                                    <i class="fa-solid fa-camera mr-1"></i> Open Camera
-                                </button>
-                                <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
-                                    <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
-                                </button>
-                                <button type="button" id="retakeCamBtn" onclick="resetCamera()" class="hidden bg-slate-700/80 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
-                                    <i class="fa-solid fa-rotate-left mr-1"></i> Retake
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            <form id="createAdvisoryForm" class="space-y-3" onsubmit="submitNewAdvisory(event)">
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Advisory Title</label>
+                    <input type="text" id="advisoryTitle" required class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="e.g. Scheduled Power Interruption">
+                </div>
 
-                    <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Description</label>
-                        <textarea id="newDescription" required rows="2" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="Detailed report description..."></textarea>
-                    </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Category</label>
+                    <select id="advisoryCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 font-medium">
+                        <option value="WEATHER">Weather / Calamity</option>
+                        <option value="SECURITY">Security Alert</option>
+                        <option value="HEALTH">Health Advisory</option>
+                        <option value="UTILITY">Water / Power Utility</option>
+                        <option value="GENERAL">General Notice</option>
+                    </select>
+                </div>
 
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-[10px] font-bold text-navy uppercase">Pinpoint Location on Map</label>
-                            <button type="button" onclick="getCurrentLocation()" class="text-[9px] text-skyblue font-bold hover:underline">
-                                <i class="fa-solid fa-crosshairs mr-0.5"></i> Use GPS
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Announcement Message</label>
+                    <textarea id="advisoryContent" required rows="4" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Write announcement details for residents..."></textarea>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeCreateAdvisoryModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="submit" id="submitAdvisoryBtn" class="w-1/2 bg-skyblue text-white py-2.5 rounded-xl text-xs font-black shadow uppercase">Publish Advisory</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Log Incident -->
+    <div id="createIncidentModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-3 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-2 pb-2 border-b">
+                <h3 class="text-xs font-bold text-navy uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus text-skyblue"></i> Log Digital Incident Report
+                </h3>
+                <button onclick="closeCreateIncidentModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="createIncidentForm" class="space-y-3" onsubmit="submitNewIncident(event)">
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Title</label>
+                    <input type="text" id="newTitle" required class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Brief summary of incident">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Category</label>
+                    <select id="newCategory" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 font-medium">
+                        <option value="Noise Complaint">Noise Complaint</option>
+                        <option value="Theft">Theft</option>
+                        <option value="Medical Emergency">Medical Emergency</option>
+                        <option value="Fire Incident">Fire Incident</option>
+                        <option value="Public Disturbance">Public Disturbance</option>
+                        <option value="Traffic/Accident">Traffic/Accident</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+
+                <!-- Anonymous Reporting Checkbox -->
+                <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <input type="checkbox" id="isAnonymousInput" class="w-4 h-4 text-skyblue rounded border-slate-300 focus:ring-skyblue">
+                    <label for="isAnonymousInput" class="text-[10px] font-bold text-navy cursor-pointer">
+                        Report Anonymously <span class="text-slate-400 font-normal">(Hide my identity in blotter)</span>
+                    </label>
+                </div>
+
+                <div class="flex gap-2 my-2">
+                    <button type="button" onclick="triggerNativeCamera()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Take Photo
+                    </button>
+                    <button type="button" id="record5sBtn" onclick="record5sIncidentVideo()" class="w-1/2 bg-red-50 text-red-600 font-bold text-xs py-2 rounded-xl border border-red-200 hover:bg-red-100 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-video"></i> Record 5s Video
+                    </button>
+                </div>
+
+                <!-- Media Preview Box -->
+                <div id="incidentMediaPreview" class="hidden mt-2 rounded-xl overflow-hidden border border-slate-200 bg-black">
+                    <img id="incidentPhotoImg" class="hidden w-full h-32 object-cover">
+                    <video id="incidentVideoPlayer" controls playsinline class="hidden w-full h-32 object-cover"></video>
+                </div>
+
+                <!-- Incident Log Camera Capture Module -->
+                <input type="file" id="nativeCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativePhoto(event)">
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
+                    <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
+                        <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                        <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
+                        
+                        <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
+                            <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                                <i class="fa-solid fa-camera mr-1"></i> Open Camera
+                            </button>
+                            <button type="button" id="snapCamBtn" onclick="captureSnapshot()" class="hidden bg-skyblue text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow">
+                                <i class="fa-solid fa-circle-dot mr-1"></i> Snap Photo
+                            </button>
+                            <button type="button" id="retakeCamBtn" onclick="resetCamera()" class="hidden bg-slate-700/80 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Retake
                             </button>
                         </div>
-                        <div id="pickerMapContainer" class="w-full h-36 rounded-xl border border-slate-300 overflow-hidden mb-2"></div>
-                        <input type="hidden" id="newLatitude" value="10.9613">
-                        <input type="hidden" id="newLongitude" value="124.6483">
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase mb-1">Location Address</label>
-                        <input type="text" id="newAddress" required class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Click on map to pinpoint address...">
-                    </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Description</label>
+                    <textarea id="newDescription" required rows="3" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Detailed report description..."></textarea>
+                </div>
 
-                    <div class="flex gap-2 pt-1">
-                        <button type="button" onclick="closeCreateIncidentModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
-                        <button type="submit" id="submitIncidentBtn" class="w-1/2 bg-navy text-white py-2.5 rounded-xl text-xs font-bold shadow">Submit Log</button>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-[10px] font-bold text-navy uppercase">Pinpoint Location on Map</label>
+                        <button type="button" onclick="getCurrentLocation()" class="text-[9px] text-skyblue font-bold hover:underline">
+                            <i class="fa-solid fa-crosshairs mr-0.5"></i> Use GPS
+                        </button>
                     </div>
-                </form>
+                    <div id="pickerMapContainer" class="w-full h-36 rounded-xl border border-slate-300 overflow-hidden mb-2"></div>
+                    <input type="hidden" id="newLatitude" value="10.9613">
+                    <input type="hidden" id="newLongitude" value="124.6483">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-navy uppercase mb-1">Location Address</label>
+                    <input type="text" id="newAddress" required class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50" placeholder="Click on map to pinpoint address...">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeCreateIncidentModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="submit" id="submitIncidentBtn" class="w-1/2 bg-navy text-white py-2.5 rounded-xl text-xs font-bold shadow">Submit Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Logout Confirmation -->
+    <div id="logoutModal" class="hidden fixed inset-0 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-5 w-full max-w-[280px] text-center">
+            <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto mb-3 text-base">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-sm font-bold text-navy mb-1">Confirm Logout</h3>
+            <p class="text-[11px] text-slate-500 mb-4 leading-tight">Are you sure you want to logout/sign out?</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="closeLogoutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition">Cancel</button>
+                <button onclick="confirmLogout()" class="w-full bg-navy hover:bg-navy/90 text-slatewhite font-bold text-xs py-2 rounded-xl transition shadow-sm">Yes</button>
             </div>
         </div>
+    </div>
 
-        <!-- Modal: Logout Confirmation -->
-        <div id="logoutModal" class="hidden absolute inset-0 bg-navy/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-xl p-5 w-full max-w-[260px] text-center">
-                <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto mb-3 text-base">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+    <!-- Modal: Password Recovery via OTP -->
+    <div id="forgotPasswordModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-[320px] space-y-3 relative">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xs font-black text-navy uppercase">Account Recovery (OTP)</h3>
+                <button onclick="closeForgotPasswordModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div id="otpAlertMessage" class="hidden p-2 rounded-xl text-[10px] text-center font-bold"></div>
+
+            <!-- STEP 1: Enter Username/Email -->
+            <div id="otpStep1" class="space-y-2">
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Registered Username or Email</label>
+                    <input type="text" id="otpAccountInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter username or email">
                 </div>
-                <h3 class="text-sm font-bold text-navy mb-1">Confirm Logout</h3>
-                <p class="text-[11px] text-slate-500 mb-4 leading-tight">Are you sure you want to logout/sign out?</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="closeLogoutModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-xl transition">Cancel</button>
-                    <button onclick="confirmLogout()" class="w-full bg-navy hover:bg-navy/90 text-slatewhite font-bold text-xs py-2 rounded-xl transition shadow-sm">Yes</button>
+                <button type="button" onclick="requestOTPCode()" id="sendOtpBtn" class="w-full bg-navy text-white text-xs font-bold py-2.5 rounded-xl shadow">
+                    GENERATE 6-DIGIT OTP
+                </button>
+            </div>
+
+            <!-- STEP 2: Enter Received OTP & New Password -->
+            <div id="otpStep2" class="hidden space-y-2">
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Enter 6-Digit OTP</label>
+                    <input type="text" id="otpCodeInput" maxlength="6" class="w-full text-center tracking-widest font-mono text-sm py-1.5 border rounded-xl bg-slate-50 font-bold focus:ring-1 focus:ring-skyblue" placeholder="000000">
                 </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">New Password</label>
+                    <input type="password" id="otpNewPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter new password">
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Confirm New Password</label>
+                    <input type="password" id="otpConfirmPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Re-enter new password">
+                </div>
+
+                <button type="button" onclick="verifyAndResetPassword()" id="resetPasswordBtn" class="w-full bg-safetygreen text-white text-xs font-bold py-2.5 rounded-xl shadow uppercase">
+                    UPDATE PASSWORD
+                </button>
             </div>
         </div>
-
-        <!-- Modal: Password Recovery via OTP -->
-        <div id="forgotPasswordModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-[300px] space-y-3 relative">
-                <div class="flex justify-between items-center border-b pb-2">
-                    <h3 class="text-xs font-black text-navy uppercase">Account Recovery (OTP)</h3>
-                    <button onclick="closeForgotPasswordModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-
-                <div id="otpAlertMessage" class="hidden p-2 rounded-xl text-[10px] text-center font-bold"></div>
-
-                <!-- STEP 1: Enter Username/Email -->
-                <div id="otpStep1" class="space-y-2">
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-1">Registered Username or Email</label>
-                        <input type="text" id="otpAccountInput" class="w-full px-3 py-2 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter username or email">
-                    </div>
-                    <button type="button" onclick="requestOTPCode()" id="sendOtpBtn" class="w-full bg-navy text-white text-xs font-bold py-2.5 rounded-xl shadow">
-                        GENERATE 6-DIGIT OTP
-                    </button>
-                </div>
-
-                <!-- STEP 2: Enter Received OTP & New Password -->
-                <div id="otpStep2" class="hidden space-y-2">
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Enter 6-Digit OTP</label>
-                        <input type="text" id="otpCodeInput" maxlength="6" class="w-full text-center tracking-widest font-mono text-sm py-1.5 border rounded-xl bg-slate-50 font-bold focus:ring-1 focus:ring-skyblue" placeholder="000000">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">New Password</label>
-                        <input type="password" id="otpNewPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Enter new password">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Confirm New Password</label>
-                        <input type="password" id="otpConfirmPassword" class="w-full px-3 py-1.5 border rounded-xl text-xs bg-slate-50 focus:ring-1 focus:ring-skyblue" placeholder="Re-enter new password">
-                    </div>
-
-                    <button type="button" onclick="verifyAndResetPassword()" id="resetPasswordBtn" class="w-full bg-safetygreen text-white text-xs font-bold py-2.5 rounded-xl shadow uppercase">
-                        UPDATE PASSWORD
-                    </button>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <!-- Application Controller Script -->
@@ -1009,17 +1222,25 @@
                 return;
             }
 
-            const sosBanner = document.getElementById('sosWarningBanner');
-            if (!sosBanner) return;
-
             localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
 
-            document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
-            document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
-            document.getElementById('sosAddress').innerText = sosData.address;
-            document.getElementById('sosTime').innerText = sosData.time;
+            const setSosInfo = (prefix) => {
+                const senderEl = document.getElementById(`${prefix}SosSender`);
+                const msgEl = document.getElementById(`${prefix}SosMessage`);
+                const addrEl = document.getElementById(`${prefix}SosAddress`);
+                const timeEl = document.getElementById(`${prefix}SosTime`);
+                const bannerEl = document.getElementById(`${prefix}SosWarningBanner`);
 
-            sosBanner.classList.remove('hidden');
+                if (senderEl) senderEl.innerText = `Reported by: ${sosData.sender}`;
+                if (msgEl) msgEl.innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
+                if (addrEl) addrEl.innerText = sosData.address;
+                if (timeEl) timeEl.innerText = sosData.time;
+                if (bannerEl) bannerEl.classList.remove('hidden');
+            };
+
+            setSosInfo('');
+            setSosInfo('admin');
+
             startSirenAlarm();
         }
 
@@ -1082,7 +1303,7 @@
                 showAppToast('PUBLISH FAILED', err.message, true);
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerText = "Publish";
+                submitBtn.innerText = "Publish Advisory";
             }
         }
 
@@ -1202,7 +1423,7 @@
         // --- FETCH ANNOUNCEMENTS ---
         async function fetchAnnouncements() {
             const container = document.getElementById('announcementsList');
-            if (!container) return;
+            const adminContainer = document.getElementById('adminAnnouncementsList');
 
             try {
                 const { data, error } = await supabase
@@ -1212,11 +1433,13 @@
                     .limit(5);
 
                 if (error || !data || data.length === 0) {
-                    container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-1">No active barangay advisories.</p>`;
+                    const empty = `<p class="text-[10px] text-slate-400 text-center py-1">No active barangay advisories.</p>`;
+                    if (container) container.innerHTML = empty;
+                    if (adminContainer) adminContainer.innerHTML = empty;
                     return;
                 }
 
-                container.innerHTML = data.map(item => `
+                const html = data.map(item => `
                     <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                         <div class="flex justify-between items-center mb-0.5">
                             <span class="font-bold text-navy text-[11px]">${item.title}</span>
@@ -1226,8 +1449,13 @@
                     </div>
                 `).join('');
 
+                if (container) container.innerHTML = html;
+                if (adminContainer) adminContainer.innerHTML = html;
+
             } catch (err) {
-                container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-1">No active advisories.</p>`;
+                const empty = `<p class="text-[10px] text-slate-400 text-center py-1">No active advisories.</p>`;
+                if (container) container.innerHTML = empty;
+                if (adminContainer) adminContainer.innerHTML = empty;
             }
         }
 
@@ -1826,10 +2054,10 @@
             toastMsg.innerText = message;
 
             if (isEmergency) {
-                iconContainer.className = "w-7 h-7 rounded-full bg-red-500/20 text-alertred flex items-center justify-center shrink-0 text-xs";
+                iconContainer.className = "w-8 h-8 rounded-full bg-red-500/20 text-alertred flex items-center justify-center shrink-0 text-sm";
                 icon.className = "fa-solid fa-triangle-exclamation animate-bounce";
             } else {
-                iconContainer.className = "w-7 h-7 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-xs";
+                iconContainer.className = "w-8 h-8 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-sm";
                 icon.className = "fa-solid fa-circle-check";
             }
 
@@ -2003,7 +2231,10 @@
         function dismissSosBanner() {
             localStorage.removeItem('bayaniwatch_sos_active');
             stopSirenAlarm();
-            document.getElementById('sosWarningBanner').classList.add('hidden');
+            const banner = document.getElementById('sosWarningBanner');
+            if (banner) banner.classList.add('hidden');
+            const adminBanner = document.getElementById('adminSosWarningBanner');
+            if (adminBanner) adminBanner.classList.add('hidden');
         }
 
         function locateSosOnMap() {
@@ -2011,37 +2242,44 @@
             if (!activeSos) return;
 
             const sosData = JSON.parse(activeSos);
-            switchTab('map');
-
-            setTimeout(() => {
+            if (currentUser && currentUser.role.toLowerCase() === 'admin') {
                 if (leafletMap && mapMarkersGroup) {
                     leafletMap.setView([sosData.lat, sosData.lng], 17);
-
                     const sosMarkerPin = L.marker([sosData.lat, sosData.lng]).addTo(mapMarkersGroup);
-
-                    let mediaHtml = '';
-                    if (sosData.media_url) {
-                        if (sosData.media_type === 'video') {
-                            mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-24 object-cover rounded mt-1"></video>`;
-                        } else {
-                            mediaHtml = `<img src="${sosData.media_url}" class="w-full h-24 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${sosData.media_url}', '_blank')">`;
-                        }
-                    }
-
-                    sosMarkerPin.bindPopup(`
-                        <div class="p-1 max-w-[200px]">
-                            <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
-                                🚨 SOS EMERGENCY
-                            </span>
-                            <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
-                            <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
-                            ${mediaHtml}
-                            <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
-                            <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
-                        </div>
-                    `).openPopup();
+                    sosMarkerPin.bindPopup(`🚨 SOS EMERGENCY: ${sosData.title}`).openPopup();
                 }
-            }, 300);
+            } else {
+                switchTab('map');
+                setTimeout(() => {
+                    if (leafletMap && mapMarkersGroup) {
+                        leafletMap.setView([sosData.lat, sosData.lng], 17);
+
+                        const sosMarkerPin = L.marker([sosData.lat, sosData.lng]).addTo(mapMarkersGroup);
+
+                        let mediaHtml = '';
+                        if (sosData.media_url) {
+                            if (sosData.media_type === 'video') {
+                                mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-24 object-cover rounded mt-1"></video>`;
+                            } else {
+                                mediaHtml = `<img src="${sosData.media_url}" class="w-full h-24 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${sosData.media_url}', '_blank')">`;
+                            }
+                        }
+
+                        sosMarkerPin.bindPopup(`
+                            <div class="p-1 max-w-[200px]">
+                                <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-red-600 text-white rounded-full inline-block mb-1 animate-pulse">
+                                    🚨 SOS EMERGENCY
+                                </span>
+                                <h4 class="text-xs font-bold text-red-700 leading-snug">${sosData.title}</h4>
+                                <p class="text-[10px] text-slate-700 mt-1">${sosData.description}</p>
+                                ${mediaHtml}
+                                <p class="text-[9px] text-slate-500 mt-1"><i class="fa-solid fa-user text-navy mr-1"></i>${sosData.sender}</p>
+                                <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-red-600 mr-1"></i>${sosData.address}</p>
+                            </div>
+                        `).openPopup();
+                    }
+                }, 300);
+            }
         }
 
         function dispatchResponder() {
@@ -2278,36 +2516,50 @@
             document.getElementById('loginBtn').disabled = isLoading;
         }
 
+        // --- ROLE ROUTER & DASHBOARD INITIALIZER ---
         async function initDashboard(user) {
             currentUser = user;
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('registerScreen').classList.add('hidden');
-            document.getElementById('bottomNav').classList.remove('hidden');
             
-            document.getElementById('userDisplayName').innerText = `${user.full_name} (${user.role.toUpperCase()})`;
-            document.getElementById('profileFullName').innerText = user.full_name;
-            document.getElementById('profileUserRole').innerText = user.role;
-            document.getElementById('profileUsername').innerText = user.username;
-            document.getElementById('profileEmail').innerText = user.email || 'N/A';
-            document.getElementById('profileAvatarChar').innerText = user.full_name.charAt(0);
+            const isAdmin = user.role.toLowerCase() === 'admin';
 
-            updateDutyUi();
+            if (isAdmin) {
+                // Render Full-Width Desktop Web UI strictly for ADMIN
+                document.getElementById('mobileAppContainer').classList.add('hidden');
+                document.getElementById('adminDashboardApp').classList.remove('hidden');
 
-            const isOfficer = user.role === 'admin' || user.role === 'tanod';
-            if (isOfficer) {
-                document.getElementById('adminOverviewPanel').classList.remove('hidden');
-            } else {
-                document.getElementById('adminOverviewPanel').classList.add('hidden');
-            }
-
-            if (user.role.toLowerCase() === 'admin') {
-                document.getElementById('logTrailsSection').classList.remove('hidden');
+                const adminName = document.getElementById('adminHeaderUserName');
+                if (adminName) adminName.innerText = user.full_name;
+                const adminAvatar = document.getElementById('adminHeaderAvatar');
+                if (adminAvatar) adminAvatar.innerText = user.full_name.charAt(0);
+                
                 await fetchLogTrails();
             } else {
-                document.getElementById('logTrailsSection').classList.add('hidden');
+                // Render Mobile Frame App UI for RESIDENT and TANOD
+                document.getElementById('adminDashboardApp').classList.add('hidden');
+                document.getElementById('mobileAppContainer').classList.remove('hidden');
+                document.getElementById('bottomNav').classList.remove('hidden');
+                
+                document.getElementById('userDisplayName').innerText = `${user.full_name} (${user.role.toUpperCase()})`;
+                document.getElementById('profileFullName').innerText = user.full_name;
+                document.getElementById('profileUserRole').innerText = user.role;
+                document.getElementById('profileUsername').innerText = user.username;
+                document.getElementById('profileEmail').innerText = user.email || 'N/A';
+                document.getElementById('profileAvatarChar').innerText = user.full_name.charAt(0);
+
+                updateDutyUi();
+
+                const isOfficer = user.role === 'admin' || user.role === 'tanod';
+                if (isOfficer) {
+                    document.getElementById('adminOverviewPanel')?.classList.remove('hidden');
+                } else {
+                    document.getElementById('adminOverviewPanel')?.classList.add('hidden');
+                }
+
+                switchTab('home');
             }
 
-            switchTab('home');
             subscribeToRealtimeEvents();
             await fetchAnnouncements();
             await fetchIncidents();
@@ -2316,7 +2568,8 @@
 
         async function fetchLogTrails() {
             const container = document.getElementById('logTrailsList');
-            if (!container || !currentUser) return;
+            const adminContainer = document.getElementById('adminLogTrailsList');
+            if (!currentUser) return;
 
             try {
                 const { data: logs, error } = await supabase
@@ -2328,11 +2581,13 @@
                 if (error) throw error;
 
                 if (!logs || logs.length === 0) {
-                    container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs recorded yet.</p>`;
+                    const empty = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs recorded yet.</p>`;
+                    if (container) container.innerHTML = empty;
+                    if (adminContainer) adminContainer.innerHTML = empty;
                     return;
                 }
 
-                container.innerHTML = logs.map(log => `
+                const html = logs.map(log => `
                     <div class="text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 flex justify-between items-center my-1">
                         <div>
                             <span class="font-bold text-navy">[${log.username || 'System'}]</span>
@@ -2342,8 +2597,13 @@
                     </div>
                 `).join('');
 
+                if (container) container.innerHTML = html;
+                if (adminContainer) adminContainer.innerHTML = html;
+
             } catch (err) {
-                if (container) container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs available.</p>`;
+                const empty = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs available.</p>`;
+                if (container) container.innerHTML = empty;
+                if (adminContainer) adminContainer.innerHTML = empty;
             }
         }
 
@@ -2381,6 +2641,7 @@
 
         async function fetchIncidents() {
             const list = document.getElementById('incidentsList');
+            const adminList = document.getElementById('adminIncidentsList');
             
             try {
                 const { data, error } = await supabase
@@ -2399,29 +2660,47 @@
                     reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
                 }));
 
-                document.getElementById('incidentCounter').innerText = globalIncidentsData.length;
+                const counterEl = document.getElementById('incidentCounter');
+                if (counterEl) counterEl.innerText = globalIncidentsData.length;
+
+                const statTotalEl = document.getElementById('statTotalIncidents');
+                if (statTotalEl) statTotalEl.innerText = globalIncidentsData.length;
 
                 const pending = globalIncidentsData.filter(i => i.status === 'Pending').length;
                 const progress = globalIncidentsData.filter(i => i.status === 'In Progress').length;
                 const resolved = globalIncidentsData.filter(i => i.status === 'Resolved').length;
 
-                document.getElementById('adminPendingCount').innerText = pending;
-                document.getElementById('adminProgressCount').innerText = progress;
-                document.getElementById('adminResolvedCount').innerText = resolved;
+                const pendEl = document.getElementById('adminPendingCount');
+                if (pendEl) pendEl.innerText = pending;
+                const progEl = document.getElementById('adminProgressCount');
+                if (progEl) progEl.innerText = progress;
+                const resEl = document.getElementById('adminResolvedCount');
+                if (resEl) resEl.innerText = resolved;
+
+                const pendElDesktop = document.getElementById('adminPendingCountDesktop');
+                if (pendElDesktop) pendElDesktop.innerText = pending;
+                const progElDesktop = document.getElementById('adminProgressCountDesktop');
+                if (progElDesktop) progElDesktop.innerText = progress;
+                const resElDesktop = document.getElementById('adminResolvedCountDesktop');
+                if (resElDesktop) resElDesktop.innerText = resolved;
 
                 renderIncidents(globalIncidentsData);
+                initLeafletMap();
 
             } catch (err) {
                 if (list) list.innerHTML = `<p class="text-[10px] text-red-500 text-center py-4">Failed to load reports from Supabase.</p>`;
+                if (adminList) adminList.innerHTML = `<p class="text-[10px] text-red-500 text-center py-4">Failed to load reports from Supabase.</p>`;
             }
         }
 
         function renderIncidents(items) {
             const list = document.getElementById('incidentsList');
-            if (!list) return;
+            const adminList = document.getElementById('adminIncidentsList');
 
             if (!items || items.length === 0) {
-                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No incidents reported.</p>`;
+                const emptyHtml = `<p class="text-xs text-slate-400 text-center py-4">No incidents reported.</p>`;
+                if (list) list.innerHTML = emptyHtml;
+                if (adminList) adminList.innerHTML = emptyHtml;
                 return;
             }
 
@@ -2429,7 +2708,7 @@
             const isAdminOrTanod = userRole === 'admin' || userRole === 'tanod';
             const isAdmin = userRole === 'admin';
 
-            list.innerHTML = items.map(item => `
+            const cardsHtml = items.map(item => `
                 <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-1.5 hover:border-skyblue transition">
                     <div class="flex justify-between items-center">
                         <span class="text-[9px] font-bold uppercase px-2 py-0.5 bg-skyblue/10 text-skyblue rounded-full">${item.category}</span>
@@ -2481,6 +2760,9 @@
                     ` : ''}
                 </div>
             `).join('');
+
+            if (list) list.innerHTML = cardsHtml;
+            if (adminList) adminList.innerHTML = cardsHtml;
         }
         
         async function updateStatus(incidentId, newStatus) {
@@ -2540,8 +2822,13 @@
         }
 
         function filterIncidents() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const status = document.getElementById('statusFilter').value;
+            const mobileQuery = document.getElementById('searchInput')?.value || '';
+            const adminQuery = document.getElementById('adminSearchInput')?.value || '';
+            const query = (adminQuery || mobileQuery).toLowerCase();
+
+            const mobileStatus = document.getElementById('statusFilter')?.value || 'ALL';
+            const adminStatus = document.getElementById('adminStatusFilter')?.value || 'ALL';
+            const status = adminStatus !== 'ALL' ? adminStatus : mobileStatus;
 
             const filtered = globalIncidentsData.filter(i => {
                 const matchesSearch = i.title.toLowerCase().includes(query) || i.description.toLowerCase().includes(query);
@@ -2765,8 +3052,17 @@
             const danhugLat = 10.9613;
             const danhugLng = 124.6483;
 
+            const targetMapContainer = (currentUser && currentUser.role.toLowerCase() === 'admin') 
+                ? 'adminLeafletMapContainer' 
+                : 'leafletMapContainer';
+
+            const containerEl = document.getElementById(targetMapContainer) || document.getElementById('leafletMapContainer');
+            if (!containerEl) return;
+
             if (!leafletMap) {
-                leafletMap = L.map('leafletMapContainer').setView([danhugLat, danhugLng], 15);
+                leafletMap = L.map(containerEl.id, {
+                    attributionControl: false
+                }).setView([danhugLat, danhugLng], 15);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 18,
@@ -2874,6 +3170,9 @@
             closeLogoutModal();
             stopSirenAlarm();
             
+            document.getElementById('adminDashboardApp')?.classList.add('hidden');
+            document.getElementById('mobileAppContainer')?.classList.remove('hidden');
+
             document.getElementById('homeTab').classList.add('hidden');
             document.getElementById('mapTab').classList.add('hidden');
             document.getElementById('notificationsTab').classList.add('hidden');
