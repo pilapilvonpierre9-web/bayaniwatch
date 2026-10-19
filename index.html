@@ -5,36 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BAYANIWATCH Mobile - Brgy. Danhug</title>
     
+    <!-- Prevents favicon.ico 404 error -->
+    <link rel="icon" href="data:,">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FontAwesome 6 Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet GIS Map CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Supabase JS Library CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Supabase Client Initialization -->
-    <script>
-      const SUPABASE_URL = 'https://ydjylwtkukqxdvrrfaul.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkanlsd3RrdWtxeGR2cnJmYXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk2NDIsImV4cCI6MjEwNjYzNTY0Mn0.vYw5AXyAJJBUZLQQuaaktTRad8EhtTl6Qdc6t5RuF24';
-
-      // Global Supabase client instance
-      window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    </script>
-    
-    <style>
-      .leaflet-control-attribution,
-      .leaflet-control-attribution a {
-        pointer-events: none !important;
-        cursor: default !important;
-      }
-    </style>
-
     <!-- Custom Theme Palette -->
     <script>
         tailwind.config = {
@@ -52,33 +28,57 @@
             }
         }
     </script>
+    
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet GIS Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- Supabase JS Library CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Supabase Client Initialization -->
+    <script>
+      const SUPABASE_URL = 'https://ydjylwtkukqxdvrrfaul.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkanlsd3RrdWtxeGR2cnJmYXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk2NDIsImV4cCI6MjEwNjYzNTY0Mn0.vYw5AXyAJJBUZLQQuaaktTRad8EhtTl6Qdc6t5RuF24';
+
+      window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    
     <style>
-        body {
-            background-color: #0b192e;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-        
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .leaflet-control-attribution,
+      .leaflet-control-attribution a {
+        pointer-events: none !important;
+        cursor: default !important;
+      }
 
-        .leaflet-container {
-            width: 100%;
-            height: 100%;
-            border-radius: 1rem;
-            z-index: 1;
-        }
+      body {
+        background-color: #0b192e;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      }
+      
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        @keyframes pulse-sos {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
-        }
-        .animate-sos-alert {
-            animation: pulse-sos 1.5s infinite ease-in-out;
-        }
+      .leaflet-container {
+        width: 100%;
+        height: 100%;
+        border-radius: 1rem;
+        z-index: 1;
+      }
+
+      @keyframes pulse-sos {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7); }
+        70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(211, 47, 47, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+      }
+      .animate-sos-alert {
+        animation: pulse-sos 1.5s infinite ease-in-out;
+      }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center sm:p-4">
@@ -152,21 +152,25 @@
                             </button>
                         </div>
                     </div>
-                    <!-- Quick Demo Fill Buttons -->
-                    <div class="mt-3 mb-2">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">Quick Fill Demo Accounts</p>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button type="button" onclick="fillDemoAccount('tanod1', 'Tanod@1234')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1">
-                                <i class="fas fa-user-shield text-blue-600"></i> Tanod
+
+                    <!-- Quick Fill Demo Accounts -->
+                    <div class="my-2">
+                        <span class="block text-[9px] font-black text-slate-400 text-center uppercase tracking-wider mb-1.5">
+                            Quick Fill Demo Accounts
+                        </span>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button type="button" onclick="quickFill('tanod1', 'Tanod@1234')" class="bg-skyblue/10 border border-skyblue/30 hover:bg-skyblue hover:text-white text-skyblue font-bold py-1.5 rounded-xl text-[10px] transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-user-shield text-[10px]"></i> Tanod
                             </button>
-                            <button type="button" onclick="fillDemoAccount('resident1', 'Resident@1234')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1">
-                                <i class="fas fa-user text-emerald-600"></i> Resident
+                            <button type="button" onclick="quickFill('resident1', 'Resident@1234')" class="bg-safetygreen/10 border border-safetygreen/30 hover:bg-safetygreen hover:text-white text-safetygreen font-bold py-1.5 rounded-xl text-[10px] transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-user text-[10px]"></i> Resident
                             </button>
-                            <button type="button" onclick="fillDemoAccount('admin1', 'Admin@1234')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition-colors flex items-center justify-center gap-1">
-                                <i class="fas fa-user-cog text-amber-600"></i> Admin
+                            <button type="button" onclick="quickFill('admin1', 'Admin@1234')" class="bg-alertamber/10 border border-alertamber/30 hover:bg-alertamber hover:text-white text-navy font-bold py-1.5 rounded-xl text-[10px] transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-user-gear text-[10px]"></i> Admin
                             </button>
                         </div>
                     </div>
+
                     <button type="submit" id="loginBtn" class="w-full bg-navy hover:bg-navy/90 active:scale-[0.98] text-slatewhite font-bold py-3 rounded-xl transition duration-150 shadow-lg shadow-navy/20 text-xs flex justify-center items-center mt-2">
                         <span id="btnText">SIGN IN</span>
                         <span id="btnSpinner" class="hidden flex items-center gap-2">
@@ -261,6 +265,12 @@
                             </h2>
                         </div>
                         <div class="flex items-center gap-2">
+                            <!-- Tanod Duty Status Toggle Button -->
+                            <button id="tanodDutyBtn" onclick="toggleTanodDutyStatus()" class="hidden text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/30 bg-white/10 text-white transition flex items-center gap-1">
+                                <span id="dutyIndicatorDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                <span id="dutyBtnText">OFF DUTY</span>
+                            </button>
+
                             <button onclick="switchTab('notifications')" class="w-8 h-8 bg-white/10 hover:bg-white/20 text-slatewhite rounded-full flex items-center justify-center relative">
                                 <i class="fa-solid fa-bell text-xs"></i>
                                 <span class="absolute top-1 right-1 w-2 h-2 bg-alertamber rounded-full"></span>
@@ -310,7 +320,7 @@
                         </div>
                     </div>
 
-                    <!-- Resident SOS Trigger -->
+                    <!-- Resident SOS Trigger Card -->
                     <div id="sosTriggerCard" class="bg-red-50 border border-red-200 rounded-2xl p-3.5 flex items-center justify-between shadow-sm">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-alertred text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-md animate-pulse">
@@ -324,6 +334,42 @@
                         <button onclick="triggerEmergencySOS()" class="bg-alertred hover:bg-red-700 active:scale-95 text-white text-[10px] font-black px-3.5 py-2 rounded-xl transition shadow-md tracking-wider uppercase">
                             SEND SOS
                         </button>
+                    </div>
+
+                    <!-- Barangay Advisories & Announcement Feed Section -->
+                    <div id="announcementSection" class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fa-solid fa-bullhorn text-skyblue"></i> Barangay Advisories
+                            </h4>
+                            <span class="text-[9px] bg-skyblue/10 text-skyblue font-bold px-2 py-0.5 rounded-full">OFFICIAL</span>
+                        </div>
+                        <div id="announcementsList" class="space-y-2 text-[10px]">
+                            <p class="text-slate-400 text-center py-2">Loading announcements...</p>
+                        </div>
+                    </div>
+
+                    <!-- Direct Emergency Hotline Quick Dialer Card -->
+                    <div class="bg-navy/5 border border-navy/20 rounded-2xl p-3 space-y-2">
+                        <h4 class="text-[11px] font-black text-navy uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-phone-volume text-alertred"></i> Emergency Direct Hotlines
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                            <a href="tel:911" class="bg-white p-2 rounded-xl border border-slate-200 flex items-center gap-2 hover:border-alertred transition">
+                                <i class="fa-solid fa-shield-halved text-alertred text-xs"></i>
+                                <div>
+                                    <span class="font-bold block text-navy leading-none">PNP Hotline</span>
+                                    <span class="text-[9px] text-slate-500">Dial 911</span>
+                                </div>
+                            </a>
+                            <a href="tel:160" class="bg-white p-2 rounded-xl border border-slate-200 flex items-center gap-2 hover:border-alertred transition">
+                                <i class="fa-solid fa-fire text-amber-500 text-xs"></i>
+                                <div>
+                                    <span class="font-bold block text-navy leading-none">BFP Fire</span>
+                                    <span class="text-[9px] text-slate-500">Dial 160</span>
+                                </div>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Admin Command Panel -->
@@ -493,6 +539,33 @@
 
         </div>
 
+        <!-- Modal: Resolution Proof & Notes -->
+        <div id="resolveModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[290px] space-y-3">
+                <div class="flex items-center gap-2 border-b pb-2">
+                    <div class="w-8 h-8 bg-safetygreen/20 text-safetygreen rounded-lg flex items-center justify-center text-xs font-bold">
+                        <i class="fa-solid fa-check-circle"></i>
+                    </div>
+                    <h3 class="text-xs font-black text-navy uppercase">Mark Incident Resolved</h3>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Resolution Summary / Action Taken</label>
+                    <textarea id="resolutionNotesInput" rows="2" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50" placeholder="Describe how the situation was handled..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase mb-1">Upload Resolution Photo (Optional)</label>
+                    <input type="file" id="resolutionImageInput" accept="image/*" class="w-full text-[10px] text-slate-500 border rounded-lg p-1">
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeResolveModal()" class="w-1/2 bg-slate-100 text-slate-700 py-2 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="button" onclick="confirmResolutionSubmit()" class="w-1/2 bg-safetygreen text-white py-2 rounded-xl text-xs font-black shadow uppercase">Confirm</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: SOS Request -->
         <div id="sosInputModal" class="hidden absolute inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div class="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-[300px] space-y-2.5">
@@ -514,28 +587,22 @@
                     </select>
                 </div>
 
-                <!-- SOS Camera / Video Recording Module UI -->
+                <!-- SOS Camera Module UI -->
                 <input type="file" id="nativeSosCamInput" accept="image/*" capture="environment" class="hidden" onchange="handleNativeSosPhoto(event)">
                 <div>
                     <label class="block text-[9px] font-bold text-alertred uppercase mb-1">
                         <i class="fa-solid fa-camera mr-1"></i> SOS Media Evidence (Optional)
                     </label>
                     <div class="relative bg-black rounded-xl overflow-hidden h-32 flex items-center justify-center border border-red-300">
-                        <!-- Live Video Stream -->
                         <video id="sosStream" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                        <!-- Canvas for Photo Processing -->
                         <canvas id="sosCanvas" class="hidden"></canvas>
-                        <!-- Captured Photo Preview -->
                         <img id="sosPhotoPreview" class="hidden w-full h-full object-cover" alt="SOS Photo Evidence">
-                        <!-- Recorded Video Preview -->
                         <video id="sosVideoPreview" controls class="hidden w-full h-full object-cover"></video>
                         
-                        <!-- Video Recording Pulse Badge -->
                         <div id="sosRecBadge" class="hidden absolute top-2 left-2 bg-red-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse z-20">
                             <span class="w-2 h-2 rounded-full bg-white"></span> REC <span id="sosRecTimer">00:05</span>
                         </div>
 
-                        <!-- Controls Overlay -->
                         <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 px-2 z-10">
                             <button type="button" id="startSosCamBtn" onclick="initSosCamera()" class="bg-red-700/80 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-lg font-bold backdrop-blur-xs">
                                 <i class="fa-solid fa-camera mr-1"></i> Open Cam
@@ -643,6 +710,14 @@
                         </select>
                     </div>
 
+                    <!-- Anonymous Reporting Checkbox -->
+                    <div class="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <input type="checkbox" id="isAnonymousInput" class="w-4 h-4 text-skyblue rounded border-slate-300 focus:ring-skyblue">
+                        <label for="isAnonymousInput" class="text-[10px] font-bold text-navy cursor-pointer">
+                            Report Anonymously <span class="text-slate-400 font-normal">(Hide my identity in blotter)</span>
+                        </label>
+                    </div>
+
                     <div class="flex gap-2 my-2">
                         <button type="button" onclick="triggerNativeCamera()" class="w-1/2 bg-slate-100 text-navy font-bold text-xs py-2 rounded-xl border border-slate-200 hover:bg-slate-200 transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-camera"></i> Take Photo
@@ -663,14 +738,10 @@
                     <div>
                         <label class="block text-[10px] font-bold text-navy uppercase mb-1">Incident Photo Evidence</label>
                         <div class="relative bg-slate-900 rounded-xl overflow-hidden h-36 flex items-center justify-center border border-slate-300">
-                            <!-- Live Video Stream -->
                             <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover"></video>
-                            <!-- Canvas for Snapshot Processing -->
                             <canvas id="cameraCanvas" class="hidden"></canvas>
-                            <!-- Captured Image Preview -->
                             <img id="photoPreview" class="hidden w-full h-full object-cover" alt="Captured Evidence">
                             
-                            <!-- Camera Controls -->
                             <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2 z-10">
                                 <button type="button" id="startCamBtn" onclick="initCamera()" class="bg-navy/80 hover:bg-navy text-white text-[10px] px-2.5 py-1 rounded-lg font-bold backdrop-blur-xs">
                                     <i class="fa-solid fa-camera mr-1"></i> Open Camera
@@ -777,112 +848,391 @@
 
     </div>
 
-    <!-- Application Controller -->
+    <!-- Application Controller Script -->
     <script>
+        // --- DEMO AUTO-FILL HELPER ---
+        function quickFill(user, pass) {
+            const userField = document.getElementById('username');
+            const passField = document.getElementById('password');
+            if (userField) userField.value = user;
+            if (passField) passField.value = pass;
+            
+            const alertBox = document.getElementById('alertMessage');
+            if (alertBox) alertBox.classList.add('hidden');
+        }
+
+        // --- WEB AUDIO API EMERGENCY SIREN SYNTHESIZER ---
+        let audioCtx = null;
+
+        function unlockAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        document.addEventListener('click', unlockAudioContext, { once: true });
+        document.addEventListener('touchstart', unlockAudioContext, { once: true });
+
+        function playEmergencySirenSound() {
+            try {
+                unlockAudioContext();
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(850, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.35);
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } catch (e) {
+                console.log("Audio siren error:", e);
+            }
+        }
+
+        let sirenInterval = null;
+
+        function startSirenAlarm() {
+            if (!sirenInterval) {
+                playEmergencySirenSound();
+                sirenInterval = setInterval(playEmergencySirenSound, 500);
+            }
+        }
+
+        function stopSirenAlarm() {
+            if (sirenInterval) {
+                clearInterval(sirenInterval);
+                sirenInterval = null;
+            }
+        }
+
+        // --- SUPABASE REALTIME SUBSCRIPTION ENGINE ---
+        function subscribeToRealtimeEvents() {
+            if (!window.supabase) return;
+
+            window.supabase
+                .channel('public:sos_alerts')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
+                    (payload) => {
+                        const newSos = payload.new;
+                        if (newSos && newSos.status === 'ACTIVE') {
+                            displayRealtimeSosBanner({
+                                sender: newSos.username || 'Resident',
+                                title: '🚨 CRITICAL SOS EMERGENCY',
+                                description: 'Immediate assistance requested by resident!',
+                                address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
+                                lat: newSos.latitude,
+                                lng: newSos.longitude,
+                                time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                media_url: newSos.media_url,
+                                media_type: newSos.media_type
+                            });
+                        }
+                    }
+                )
+                .subscribe();
+
+            window.supabase
+                .channel('public:incidents')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'incidents' },
+                    async () => {
+                        await fetchIncidents();
+                    }
+                )
+                .subscribe();
+        }
+
+       // --- ROLE-RESTRICTED SOS ALERT ENGINE ---
+function displayRealtimeSosBanner(sosData) {
+    if (!currentUser) return;
+
+    // Strict Role Guard: Only Officers (Tanod / Admin) receive the alarm & popup
+    const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
+    if (!isOfficer) {
+        dismissSosBanner();
+        return;
+    }
+
+    const sosBanner = document.getElementById('sosWarningBanner');
+    if (!sosBanner) return;
+
+    localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
+
+    document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
+    document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
+    document.getElementById('sosAddress').innerText = sosData.address;
+    document.getElementById('sosTime').innerText = sosData.time;
+
+    sosBanner.classList.remove('hidden');
+    startSirenAlarm();
+}
+
+function checkActiveSos() {
+    const activeSos = localStorage.getItem('bayaniwatch_sos_active');
+    if (!currentUser) return;
+
+    const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
+    if (activeSos && isOfficer) {
+        displayRealtimeSosBanner(JSON.parse(activeSos));
+    } else {
+        dismissSosBanner();
+    }
+}
+
+        let pendingResolveIncidentId = null;
+
+        function openResolveModal(incidentId) {
+            pendingResolveIncidentId = incidentId;
+            document.getElementById('resolveModal').classList.remove('hidden');
+        }
+
+        function closeResolveModal() {
+            pendingResolveIncidentId = null;
+            document.getElementById('resolveModal').classList.add('hidden');
+            document.getElementById('resolutionNotesInput').value = '';
+            document.getElementById('resolutionImageInput').value = '';
+        }
+
+        async function confirmResolutionSubmit() {
+            if (!pendingResolveIncidentId) return;
+
+            const notes = document.getElementById('resolutionNotesInput').value.trim();
+            const fileInput = document.getElementById('resolutionImageInput');
+            let resolutionImgUrl = null;
+
+            try {
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const fileName = `res_${Date.now()}_${file.name}`;
+                    
+                    const { error: uploadErr } = await supabase.storage
+                        .from('incident-photos')
+                        .upload(fileName, file);
+
+                    if (!uploadErr) {
+                        const { data: urlData } = supabase.storage
+                            .from('incident-photos')
+                            .getPublicUrl(fileName);
+                        resolutionImgUrl = urlData.publicUrl;
+                    }
+                }
+
+                await supabase
+                    .from('incidents')
+                    .update({ 
+                        status: 'Resolved',
+                        resolution_notes: notes || 'Handled on site by tanod unit.',
+                        resolution_image_url: resolutionImgUrl
+                    })
+                    .eq('incident_id', pendingResolveIncidentId);
+
+                await supabase.from('log_trails').insert([
+                    {
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Officer',
+                        action: `Resolved Incident #${pendingResolveIncidentId} with action notes.`
+                    }
+                ]);
+
+                closeResolveModal();
+                await fetchIncidents();
+                if (typeof fetchLogTrails === 'function') fetchLogTrails();
+                showAppToast('RESOLVED REPORT', `Incident #${pendingResolveIncidentId} marked as resolved.`);
+
+            } catch (err) {
+                showAppToast('UPDATE FAILED', err.message, true);
+            }
+        }
+
+        // --- TANOD DUTY STATUS TOGGLE ---
+        async function toggleTanodDutyStatus() {
+            if (!currentUser) return;
+            const newDutyState = !currentUser.is_on_duty;
+            
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .update({ is_on_duty: newDutyState })
+                    .eq('user_id', currentUser.user_id);
+
+                if (error) throw error;
+
+                currentUser.is_on_duty = newDutyState;
+                localStorage.setItem('bayaniwatch_user', JSON.stringify(currentUser));
+
+                updateDutyUi();
+                showAppToast('DUTY STATUS UPDATED', `You are now ${newDutyState ? 'ON DUTY (Active Alert)' : 'OFF DUTY'}`);
+
+            } catch (err) {
+                showAppToast('STATUS CHANGE FAILED', err.message, true);
+            }
+        }
+
+        function updateDutyUi() {
+            const btn = document.getElementById('tanodDutyBtn');
+            const dot = document.getElementById('dutyIndicatorDot');
+            const txt = document.getElementById('dutyBtnText');
+
+            if (!btn || !currentUser) return;
+
+            const isOfficer = currentUser.role === 'tanod' || currentUser.role === 'admin';
+            if (isOfficer) {
+                btn.classList.remove('hidden');
+                if (currentUser.is_on_duty) {
+                    btn.className = "text-[10px] font-bold px-2.5 py-1 rounded-full border border-safetygreen bg-safetygreen/20 text-white transition flex items-center gap-1";
+                    dot.className = "w-2 h-2 rounded-full bg-safetygreen animate-pulse";
+                    txt.innerText = "ON DUTY";
+                } else {
+                    btn.className = "text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/30 bg-white/10 text-slate-300 transition flex items-center gap-1";
+                    dot.className = "w-2 h-2 rounded-full bg-slate-400";
+                    txt.innerText = "OFF DUTY";
+                }
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        // --- FETCH ANNOUNCEMENTS ---
+        async function fetchAnnouncements() {
+            const container = document.getElementById('announcementsList');
+            if (!container) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (error || !data || data.length === 0) {
+                    container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-1">No active barangay advisories.</p>`;
+                    return;
+                }
+
+                container.innerHTML = data.map(item => `
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <div class="flex justify-between items-center mb-0.5">
+                            <span class="font-bold text-navy text-[11px]">${item.title}</span>
+                            <span class="text-[8px] bg-navy/10 text-navy font-bold px-1.5 py-0.2 rounded">${item.category}</span>
+                        </div>
+                        <p class="text-[10px] text-slate-600 leading-tight">${item.content}</p>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-1">No active advisories.</p>`;
+            }
+        }
+
         // --- OFFLINE LOCAL STAGING ENGINE ---
         function isOnline() {
             return navigator.onLine;
         }
 
         window.addEventListener('online', () => {
-            console.log("Back online! Syncing queued offline reports...");
             showAppToast('NETWORK RESTORED', 'Back online. Syncing offline reports...');
             syncOfflineReports();
         });
 
         window.addEventListener('offline', () => {
-            console.log("Connection lost. Reports will be staged locally.");
             showAppToast('OFFLINE MODE', 'No internet connection. Reports will be saved locally.', true);
         });
 
-// Helper to convert Base64 string back to Blob for storage upload
-function base64ToBlob(base64Data, contentType) {
-    const byteCharacters = atob(base64Data.split(',')[1]);
-    const byteArrays = [];
-    for (let i = 0; i < byteCharacters.length; i += 512) {
-        const slice = byteCharacters.slice(i, i + 512);
-        const byteNumbers = new Array(slice.length);
-        for (let j = 0; j < slice.length; j++) {
-            byteNumbers[j] = slice.charCodeAt(j);
+        function base64ToBlob(base64Data, contentType) {
+            const byteCharacters = atob(base64Data.split(',')[1]);
+            const byteArrays = [];
+            for (let i = 0; i < byteCharacters.length; i += 512) {
+                const slice = byteCharacters.slice(i, i + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let j = 0; j < slice.length; j++) {
+                    byteNumbers[j] = slice.charCodeAt(j);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, { type: contentType });
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
-    }
-    return new Blob(byteArrays, { type: contentType });
-}
 
-async function syncOfflineReports() {
-    let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
-    if (offlineQueue.length === 0) return;
+        async function syncOfflineReports() {
+            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            if (offlineQueue.length === 0) return;
 
-    let remainingQueue = [];
+            let remainingQueue = [];
 
-    for (let report of offlineQueue) {
-        try {
-            let uploadedImageUrl = report.image_url || null;
+            for (let report of offlineQueue) {
+                try {
+                    let uploadedImageUrl = report.image_url || null;
 
-            // 1. If a local Base64 media exists, upload it to Supabase Storage first
-            if (report.local_media_base64) {
-                const isVideo = report.media_type === 'video';
-                const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
-                const ext = isVideo ? 'webm' : 'jpg';
-                const fileName = `incident_${Date.now()}.${ext}`;
+                    if (report.local_media_base64) {
+                        const isVideo = report.media_type === 'video';
+                        const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
+                        const ext = isVideo ? 'webm' : 'jpg';
+                        const fileName = `incident_${Date.now()}.${ext}`;
 
-                const mediaBlob = base64ToBlob(report.local_media_base64, mimeType);
+                        const mediaBlob = base64ToBlob(report.local_media_base64, mimeType);
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('incident-photos')
-                    .upload(fileName, mediaBlob, {
-                        contentType: mimeType,
-                        upsert: true
-                    });
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('incident-photos')
+                            .upload(fileName, mediaBlob, {
+                                contentType: mimeType,
+                                upsert: true
+                            });
 
-                if (!uploadError) {
-                    const { data: urlData } = supabase.storage
-                        .from('incident-photos')
-                        .getPublicUrl(fileName);
-                    uploadedImageUrl = urlData.publicUrl;
-                } else {
-                    console.error("Storage upload error during sync:", uploadError.message);
+                        if (!uploadError) {
+                            const { data: urlData } = supabase.storage
+                                .from('incident-photos')
+                                .getPublicUrl(fileName);
+                            uploadedImageUrl = urlData.publicUrl;
+                        }
+                    }
+
+                    const payload = {
+                        user_id: report.user_id,
+                        title: report.title,
+                        category: report.category,
+                        description: report.description,
+                        location_address: report.location_address,
+                        latitude: report.latitude,
+                        longitude: report.longitude,
+                        is_anonymous: report.is_anonymous || false,
+                        image_url: uploadedImageUrl
+                    };
+
+                    const { error } = await supabase.from('incidents').insert([payload]);
+
+                    if (error) {
+                        remainingQueue.push(report);
+                    }
+                } catch (err) {
+                    remainingQueue.push(report);
                 }
             }
 
-            // 2. Build explicit database payload
-            const payload = {
-                user_id: report.user_id,
-                title: report.title,
-                category: report.category,
-                description: report.description,
-                location_address: report.location_address,
-                latitude: report.latitude,
-                longitude: report.longitude,
-                image_url: uploadedImageUrl
-            };
+            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
 
-            // 3. Insert record into database
-            const { error } = await supabase.from('incidents').insert([payload]);
-
-            if (error) {
-                console.error("Supabase DB sync error:", error.message);
-                remainingQueue.push(report);
+            if (remainingQueue.length === 0) {
+                showAppToast('SYNC COMPLETE', 'Offline reports with photos/videos successfully synced!');
+                if (typeof fetchIncidents === 'function') {
+                    await fetchIncidents();
+                }
             }
-        } catch (err) {
-            console.error("Sync process error:", err);
-            remainingQueue.push(report);
         }
-    }
 
-    localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
-
-    if (remainingQueue.length === 0) {
-        showAppToast('SYNC COMPLETE', 'Offline reports with photos/videos successfully synced!');
-        if (typeof fetchIncidents === 'function') {
-            await fetchIncidents();
-        }
-    }
-}
-
-        // --- BACKGROUND AUTO-SYNC INTERVAL ---
         setInterval(async () => {
             if (navigator.onLine) {
                 let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
@@ -903,11 +1253,9 @@ async function syncOfflineReports() {
         let pickerMap = null;
         let pickerMarker = null;
 
-        // Incident Photo Camera State
         let mediaStreamInstance = null;
         let capturedBlobData = null;
 
-        // Incident Log Video State
         let incidentMediaBlob = null;
         let incidentMediaType = null;
 
@@ -956,21 +1304,18 @@ async function syncOfflineReports() {
                 }, 5000);
 
             } catch (err) {
-                console.error("Camera/Mic Permission Error:", err);
                 triggerNativeCamera();
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-video"></i> Record 5s Video`;
             }
         }
 
-        // SOS Media Recording State
         let sosStreamInstance = null;
         let sosMediaRecorder = null;
         let sosRecordedChunks = [];
         let sosMediaBlob = null;
         let sosMediaType = null;
 
-        // --- ACCOUNT RECOVERY (OTP) FUNCTIONS ---
         let targetUserForReset = null;
 
         function openForgotPasswordModal() {
@@ -1057,7 +1402,6 @@ async function syncOfflineReports() {
                 document.getElementById('otpStep2').classList.remove('hidden');
 
             } catch (err) {
-                console.error('OTP Generation Error:', err);
                 showOtpAlert('Failed to generate OTP code.', 'error');
             } finally {
                 sendBtn.disabled = false;
@@ -1157,7 +1501,6 @@ async function syncOfflineReports() {
                 }, 1500);
 
             } catch (err) {
-                console.error("Password reset error:", err);
                 showOtpAlert('Failed to update password in database.', 'error');
             } finally {
                 resetBtn.disabled = false;
@@ -1165,7 +1508,6 @@ async function syncOfflineReports() {
             }
         }
 
-        // --- NATIVE CAMERA FALLBACK HANDLERS ---
         function triggerNativeCamera() {
             document.getElementById('nativeCamInput').click();
         }
@@ -1186,7 +1528,6 @@ async function syncOfflineReports() {
             }
         }
 
-        // --- INCIDENT LOG CAMERA MODULE HANDLERS ---
         async function initCamera() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 triggerNativeCamera();
@@ -1206,12 +1547,10 @@ async function syncOfflineReports() {
                 document.getElementById('startCamBtn').classList.add('hidden');
                 document.getElementById('snapCamBtn').classList.remove('hidden');
             } catch (err) {
-                console.error("Camera access error:", err);
                 triggerNativeCamera();
             }
         }
 
-        // --- NATIVE SOS CAMERA FALLBACK HANDLERS ---
         function triggerNativeSosCamera() {
             document.getElementById('nativeSosCamInput').click();
         }
@@ -1271,7 +1610,6 @@ async function syncOfflineReports() {
             }
         }
 
-        // --- SOS CAMERA & VIDEO RECORDER HANDLERS ---
         async function initSosCamera() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 triggerNativeSosCamera();
@@ -1294,7 +1632,6 @@ async function syncOfflineReports() {
                 document.getElementById('snapSosPhotoBtn').classList.remove('hidden');
                 document.getElementById('recSosVideoBtn').classList.remove('hidden');
             } catch (err) {
-                console.error("SOS Camera error:", err);
                 triggerNativeSosCamera();
             }
         }
@@ -1384,11 +1721,6 @@ async function syncOfflineReports() {
             }
         }
 
-        // Initialize SOS Audio Alarm
-        const sosAudio = new Audio('./alarm.mp3');
-        sosAudio.loop = true;
-
-        // --- IN-APP TOAST UI HELPERS ---
         function showAppToast(title, message, isEmergency = false) {
             const toast = document.getElementById('appToast');
             const toastTitle = document.getElementById('toastTitle');
@@ -1415,7 +1747,6 @@ async function syncOfflineReports() {
             }, 3500);
         }
 
-        // --- SOS MAP & DISPATCH FUNCTIONS ---
         function triggerEmergencySOS() {
             document.getElementById('sosInputModal').classList.remove('hidden');
             setTimeout(initSosMap, 300);
@@ -1496,7 +1827,6 @@ async function syncOfflineReports() {
                 }
 
                 const sosPayload = {
-                    user_id: currentUser ? currentUser.user_id : null,
                     sender: currentUser ? currentUser.full_name : 'Resident User',
                     title: category,
                     description: details,
@@ -1508,7 +1838,6 @@ async function syncOfflineReports() {
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 };
 
-                localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosPayload));
                 closeSosModal();
 
                 const detailsInput = document.getElementById('sosModalDetails');
@@ -1518,7 +1847,7 @@ async function syncOfflineReports() {
                     .from('incidents')
                     .insert([
                         {
-                            user_id: sosPayload.user_id,
+                            user_id: currentUser ? currentUser.user_id : null,
                             title: `🚨 EMERGENCY SOS: ${category}`,
                             category: category,
                             description: details,
@@ -1534,7 +1863,7 @@ async function syncOfflineReports() {
 
                 await supabase.from('sos_alerts').insert([
                     {
-                        user_id: sosPayload.user_id,
+                        user_id: currentUser ? currentUser.user_id : null,
                         username: currentUser ? currentUser.username : 'Resident',
                         latitude: lat,
                         longitude: lng,
@@ -1546,74 +1875,31 @@ async function syncOfflineReports() {
 
                 await supabase.from('log_trails').insert([
                     {
-                        user_id: sosPayload.user_id,
+                        user_id: currentUser ? currentUser.user_id : null,
                         username: currentUser ? currentUser.username : 'Resident',
                         action: `TRIGGERED EMERGENCY SOS: ${category}`
                     }
                 ]);
 
-                await fetchIncidents();
-                if (typeof fetchLogTrails === 'function') fetchLogTrails();
-
-                addOfficerNotification(`🚨 CRITICAL SOS: ${category}`, `Resident ${sosPayload.sender} triggered an emergency SOS panic alert.`);
-                checkActiveSos();
-
-                showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted to officers & saved to logs.', true);
+                displayRealtimeSosBanner(sosPayload);
+                showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted via Realtime cloud.', true);
 
             } catch (err) {
-                console.error("Supabase SOS insert error:", err);
                 showAppToast('SOS ERROR', 'Failed to broadcast alert to cloud server.', true);
             }
         }
 
         function checkActiveSos() {
             const activeSos = localStorage.getItem('bayaniwatch_sos_active');
-            const sosBanner = document.getElementById('sosWarningBanner');
-
-            if (!sosBanner) return;
-
-            const isOfficer = currentUser && (currentUser.role === 'admin' || currentUser.role === 'tanod');
-
-            if (activeSos && isOfficer) {
-                const sosData = JSON.parse(activeSos);
-                
-                document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
-                document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
-                document.getElementById('sosAddress').innerText = sosData.address;
-                document.getElementById('sosTime').innerText = sosData.time;
-
-                sosBanner.classList.remove('hidden');
-                sosAudio.play().catch(e => console.log("Audio waiting for user interaction"));
-            } else {
-                sosBanner.classList.add('hidden');
-                sosAudio.pause();
-                sosAudio.currentTime = 0;
+            if (activeSos && currentUser) {
+                displayRealtimeSosBanner(JSON.parse(activeSos));
             }
         }
 
-        function addOfficerNotification(title, message) {
-            const notifTabContainer = document.querySelector('#notificationsTab > div.p-4') || document.querySelector('#notificationsTab .space-y-3');
-            if (!notifTabContainer) return;
-
-            const isOfficer = currentUser && (currentUser.role === 'admin' || currentUser.role === 'tanod');
-            if (!isOfficer) return;
-
-            const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            const notifItem = document.createElement('div');
-            notifItem.className = 'bg-white p-3 rounded-xl border border-red-200 shadow-sm flex gap-3 animate-pulse border-l-4 border-l-alertred';
-            notifItem.innerHTML = `
-                <div class="w-8 h-8 bg-red-100 text-alertred rounded-full flex items-center justify-center shrink-0 text-xs">
-                    <i class="fa-solid fa-bell"></i>
-                </div>
-                <div>
-                    <h5 class="text-xs font-bold text-navy">${title}</h5>
-                    <p class="text-[10px] text-slate-500 mt-0.5">${message}</p>
-                    <span class="text-[9px] text-slate-400 mt-1 block">${timeNow}</span>
-                </div>
-            `;
-
-            notifTabContainer.prepend(notifItem);
+        function dismissSosBanner() {
+            localStorage.removeItem('bayaniwatch_sos_active');
+            stopSirenAlarm();
+            document.getElementById('sosWarningBanner').classList.add('hidden');
         }
 
         function locateSosOnMap() {
@@ -1621,7 +1907,6 @@ async function syncOfflineReports() {
             if (!activeSos) return;
 
             const sosData = JSON.parse(activeSos);
-
             switchTab('map');
 
             setTimeout(() => {
@@ -1656,8 +1941,6 @@ async function syncOfflineReports() {
         }
 
         function dispatchResponder() {
-            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
-            if (!activeSos) return;
             document.getElementById('dispatchModal').classList.remove('hidden');
         }
 
@@ -1667,9 +1950,6 @@ async function syncOfflineReports() {
 
         async function confirmDispatchSubmit() {
             const unit = document.getElementById('dispatchUnitInput').value.trim() || 'Tanod Patrol Unit 1';
-            const activeSos = localStorage.getItem('bayaniwatch_sos_active');
-            const sosData = activeSos ? JSON.parse(activeSos) : null;
-
             closeDispatchModal();
             dismissSosBanner();
 
@@ -1684,22 +1964,13 @@ async function syncOfflineReports() {
                     ]);
                     if (typeof fetchLogTrails === 'function') fetchLogTrails();
                 } catch (err) {
-                    console.error("Failed to log dispatch trail:", err);
+                    console.error("Dispatch log error:", err);
                 }
             }
 
-            showAppToast(
-                '🚨 TANOD DISPATCH CONFIRMED', 
-                `${unit} assigned to respond to ${sosData ? sosData.sender : 'Resident'} at ${sosData ? sosData.address : 'Brgy. Danhug'}`
-            );
+            showAppToast('🚨 TANOD DISPATCH CONFIRMED', `${unit} assigned to respond.`);
         }
 
-        function dismissSosBanner() {
-            localStorage.removeItem('bayaniwatch_sos_active');
-            document.getElementById('sosWarningBanner').classList.add('hidden');
-        }
-
-        // --- DASHBOARD & SYSTEM UTILITIES ---
         setInterval(() => {
             const now = new Date();
             const timeEl = document.getElementById('currentTimeDisplay');
@@ -1754,7 +2025,6 @@ async function syncOfflineReports() {
             box.innerText = msg;
         }
 
-        // --- AUTHENTICATION HANDLERS ---
         async function handleLogin(e) {
             if (e) e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -1797,7 +2067,7 @@ async function syncOfflineReports() {
                         localStorage.setItem(lockKey, (now + lockDuration).toString());
                         localStorage.removeItem(attemptsKey);
 
-                        showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account temporarily locked for 30s.', 'error');
+                        showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account locked for 30s.', 'error');
 
                         await supabase.from('log_trails').insert([
                             {
@@ -1831,7 +2101,8 @@ async function syncOfflineReports() {
                     full_name: user.full_name,
                     username: user.username,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    is_on_duty: user.is_on_duty || false
                 };
 
                 localStorage.setItem('bayaniwatch_user', JSON.stringify(sessionUser));
@@ -1850,22 +2121,8 @@ async function syncOfflineReports() {
                 }, 500);
 
             } catch (err) {
-                console.error('Login error:', err);
                 showAlert('Error connecting to Supabase.', 'error');
                 setLoading(false);
-            }
-        }
-        function fillDemoAccount(username, password) {
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-
-            if (usernameInput && passwordInput) {
-                usernameInput.value = username;
-                passwordInput.value = password;
-                
-                if (typeof showAppToast === 'function') {
-                    showAppToast('DEMO AUTOFILL', `Filled credentials for ${username}`);
-                }
             }
         }
 
@@ -1889,7 +2146,7 @@ async function syncOfflineReports() {
             };
 
             try {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('users')
                     .insert([payload]);
 
@@ -1930,6 +2187,8 @@ async function syncOfflineReports() {
             document.getElementById('profileEmail').innerText = user.email || 'N/A';
             document.getElementById('profileAvatarChar').innerText = user.full_name.charAt(0);
 
+            updateDutyUi();
+
             const isOfficer = user.role === 'admin' || user.role === 'tanod';
             if (isOfficer) {
                 document.getElementById('adminOverviewPanel').classList.remove('hidden');
@@ -1945,6 +2204,8 @@ async function syncOfflineReports() {
             }
 
             switchTab('home');
+            subscribeToRealtimeEvents();
+            await fetchAnnouncements();
             await fetchIncidents();
             checkActiveSos();
         }
@@ -1978,7 +2239,6 @@ async function syncOfflineReports() {
                 `).join('');
 
             } catch (err) {
-                console.error("Audit log error:", err);
                 if (container) container.innerHTML = `<p class="text-[10px] text-slate-400 text-center py-2">No audit logs available.</p>`;
             }
         }
@@ -2023,7 +2283,7 @@ async function syncOfflineReports() {
                     .from('incidents')
                     .select(`
                         incident_id, title, category, description,
-                        latitude, longitude, location_address, status, reported_at, image_url,
+                        latitude, longitude, location_address, status, reported_at, image_url, is_anonymous, resolution_notes, resolution_image_url,
                         users ( full_name )
                     `)
                     .order('reported_at', { ascending: false });
@@ -2032,7 +2292,7 @@ async function syncOfflineReports() {
 
                 globalIncidentsData = data.map(inc => ({
                     ...inc,
-                    reported_by: inc.users ? inc.users.full_name : 'Unknown Resident'
+                    reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
                 }));
 
                 document.getElementById('incidentCounter').innerText = globalIncidentsData.length;
@@ -2048,7 +2308,6 @@ async function syncOfflineReports() {
                 renderIncidents(globalIncidentsData);
 
             } catch (err) {
-                console.error('Supabase fetch error:', err);
                 if (list) list.innerHTML = `<p class="text-[10px] text-red-500 text-center py-4">Failed to load reports from Supabase.</p>`;
             }
         }
@@ -2085,8 +2344,15 @@ async function syncOfflineReports() {
                         </div>
                     ` : ''}
 
+                    ${item.status === 'Resolved' && item.resolution_notes ? `
+                        <div class="mt-1 p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[10px]">
+                            <span class="font-bold text-safetygreen block uppercase text-[9px]"><i class="fa-solid fa-circle-check mr-1"></i>Resolution Summary</span>
+                            <p class="text-slate-700 leading-tight mt-0.5">${item.resolution_notes}</p>${item.resolution_image_url ? `<img src="${item.resolution_image_url}" class="w-full h-20 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${item.resolution_image_url}', '_blank')">` : ''}
+                        </div>
+                    ` : ''}
+
                     <div class="flex justify-between items-center mt-1 pt-1.5 border-t border-slate-100 text-[9px] text-slate-400">
-                        <span><i class="fa-solid fa-location-dot text-skyblue mr-1"></i>${item.location_address}</span>
+                        <span><i class="fa-solid fa-user text-slate-400 mr-1"></i>${item.reported_by}</span>
                         <span>${item.reported_at ? new Date(item.reported_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
                     </div>
 
@@ -2098,8 +2364,8 @@ async function syncOfflineReports() {
                                 </button>
                             ` : ''}
                             ${item.status !== 'Resolved' ? `
-                                <button onclick="updateStatus(${item.incident_id}, 'Resolved')" class="flex-1 bg-emerald-100 text-safetygreen hover:bg-safetygreen hover:text-white py-1 rounded-lg text-[9px] font-bold transition">
-                                    <i class="fa-solid fa-check-circle mr-1"></i> Mark Resolved
+                                <button onclick="openResolveModal(${item.incident_id})" class="flex-1 bg-emerald-100 text-safetygreen hover:bg-safetygreen hover:text-white py-1 rounded-lg text-[9px] font-bold transition">
+                                    <i class="fa-solid fa-check-circle mr-1"></i> Resolve Log
                                 </button>
                             ` : ''}
                             ${item.status === 'Resolved' && isAdmin ? `
@@ -2182,7 +2448,6 @@ async function syncOfflineReports() {
             renderIncidents(filtered);
         }
 
-        // --- INCIDENT PICKER MAP ---
         function openCreateIncidentModal() {
             document.getElementById('createIncidentModal').classList.remove('hidden');
             setTimeout(initPickerMap, 200);
@@ -2261,139 +2526,137 @@ async function syncOfflineReports() {
                 });
             }
         }
-        // Helper to convert Blob/File to Base64 for Local Storage
-function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
-}
 
-async function submitNewIncident(e) {
-    if (e) e.preventDefault();
-    
-    const submitBtn = document.getElementById('submitIncidentBtn');
-    const title = document.getElementById('newTitle').value.trim();
-    const category = document.getElementById('newCategory').value;
-    const description = document.getElementById('newDescription').value.trim();
-    const address = document.getElementById('newAddress').value.trim();
-    const lat = parseFloat(document.getElementById('newLatitude').value);
-    const lng = parseFloat(document.getElementById('newLongitude').value);
-    
-    // Extract captured media file (Blob)
-    const mediaFile = incidentMediaBlob || capturedBlobData;
-
-    // IF OFFLINE: Stage report locally with converted Base64 media
-    if (!navigator.onLine) {
-        await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile);
-        return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.innerText = "Uploading & Saving...";
-
-    let uploadedImageUrl = null;
-
-    try {
-        if (mediaFile) {
-            const isVideo = incidentMediaType === 'video';
-            const ext = isVideo ? 'webm' : 'jpg';
-            const fileName = `incident_${Date.now()}.${ext}`;
-
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('incident-photos')
-                .upload(fileName, mediaFile, {
-                    contentType: isVideo ? 'video/webm' : 'image/jpeg',
-                    upsert: true
-                });
-
-            if (uploadError) throw uploadError;
-
-            const { data: urlData } = supabase.storage
-                .from('incident-photos')
-                .getPublicUrl(fileName);
-
-            uploadedImageUrl = urlData.publicUrl;
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
         }
 
-        const { error } = await supabase
-            .from('incidents')
-            .insert([
-                {
-                    user_id: currentUser ? currentUser.user_id : null,
-                    title: title,
-                    category: category,
-                    description: description,
-                    location_address: address,
-                    latitude: lat,
-                    longitude: lng,
-                    image_url: uploadedImageUrl
+        async function submitNewIncident(e) {
+            if (e) e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitIncidentBtn');
+            const title = document.getElementById('newTitle').value.trim();
+            const category = document.getElementById('newCategory').value;
+            const description = document.getElementById('newDescription').value.trim();
+            const address = document.getElementById('newAddress').value.trim();
+            const lat = parseFloat(document.getElementById('newLatitude').value);
+            const lng = parseFloat(document.getElementById('newLongitude').value);
+            const isAnonymous = document.getElementById('isAnonymousInput').checked;
+            
+            const mediaFile = incidentMediaBlob || capturedBlobData;
+
+            if (!navigator.onLine) {
+                await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile, isAnonymous);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Uploading & Saving...";
+
+            let uploadedImageUrl = null;
+
+            try {
+                if (mediaFile) {
+                    const isVideo = incidentMediaType === 'video';
+                    const ext = isVideo ? 'webm' : 'jpg';
+                    const fileName = `incident_${Date.now()}.${ext}`;
+
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('incident-photos')
+                        .upload(fileName, mediaFile, {
+                            contentType: isVideo ? 'video/webm' : 'image/jpeg',
+                            upsert: true
+                        });
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = supabase.storage
+                        .from('incident-photos')
+                        .getPublicUrl(fileName);
+
+                    uploadedImageUrl = urlData.publicUrl;
                 }
-            ]);
 
-        if (error) throw error;
+                const { error } = await supabase
+                    .from('incidents')
+                    .insert([
+                        {
+                            user_id: currentUser ? currentUser.user_id : null,
+                            title: title,
+                            category: category,
+                            description: description,
+                            location_address: address,
+                            latitude: lat,
+                            longitude: lng,
+                            is_anonymous: isAnonymous,
+                            image_url: uploadedImageUrl
+                        }
+                    ]);
 
-        stopCameraStream();
-        capturedBlobData = null;
-        incidentMediaBlob = null;
-        closeCreateIncidentModal();
-        document.getElementById('createIncidentForm').reset();
+                if (error) throw error;
 
-        await fetchIncidents();
-        showAppToast('REPORT FILED', 'Incident report submitted successfully!');
+                stopCameraStream();
+                capturedBlobData = null;
+                incidentMediaBlob = null;
+                closeCreateIncidentModal();
+                document.getElementById('createIncidentForm').reset();
 
-    } catch (err) {
-        console.warn("Network error during upload. Saving offline locally...", err);
-        await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = "Submit Log";
-    }
-}
+                await fetchIncidents();
+                showAppToast('REPORT FILED', 'Incident report submitted successfully!');
 
-async function stageIncidentLocally(title, category, description, address, lat, lng, mediaFile) {
-    let base64Media = null;
-    
-    // Convert Blob media to Base64 string if present
-    if (mediaFile) {
-        try {
-            base64Media = await blobToBase64(mediaFile);
-        } catch (e) {
-            console.error("Failed to convert media blob to Base64:", e);
+            } catch (err) {
+                await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile, isAnonymous);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Log";
+            }
         }
-    }
 
-    const offlinePayload = {
-        user_id: currentUser ? currentUser.user_id : null,
-        title: title,
-        category: category,
-        description: description,
-        location_address: address,
-        latitude: lat,
-        longitude: lng,
-        status: 'Pending',
-        local_media_base64: base64Media,
-        media_type: incidentMediaType || 'photo',
-        localId: 'local_' + Date.now(),
-        reported_at: new Date().toISOString()
-    };
+        async function stageIncidentLocally(title, category, description, address, lat, lng, mediaFile, isAnonymous) {
+            let base64Media = null;
+            
+            if (mediaFile) {
+                try {
+                    base64Media = await blobToBase64(mediaFile);
+                } catch (e) {
+                    console.error("Failed to convert media blob to Base64:", e);
+                }
+            }
 
-    let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
-    offlineQueue.push(offlinePayload);
-    localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
+            const offlinePayload = {
+                user_id: currentUser ? currentUser.user_id : null,
+                title: title,
+                category: category,
+                description: description,
+                location_address: address,
+                latitude: lat,
+                longitude: lng,
+                status: 'Pending',
+                is_anonymous: isAnonymous,
+                local_media_base64: base64Media,
+                media_type: incidentMediaType || 'photo',
+                localId: 'local_' + Date.now(),
+                reported_at: new Date().toISOString()
+            };
 
-    stopCameraStream();
-    capturedBlobData = null;
-    incidentMediaBlob = null;
-    closeCreateIncidentModal();
-    document.getElementById('createIncidentForm').reset();
+            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            offlineQueue.push(offlinePayload);
+            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
 
-    showAppToast('SAVED OFFLINE', 'Report staged locally with media and will auto-sync later.', true);
-}
+            stopCameraStream();
+            capturedBlobData = null;
+            incidentMediaBlob = null;
+            closeCreateIncidentModal();
+            document.getElementById('createIncidentForm').reset();
 
-        // --- GIS MAPPER TAB ---
+            showAppToast('SAVED OFFLINE', 'Report staged locally with media and will auto-sync later.', true);
+        }
+
         function initLeafletMap() {
             const danhugLat = 10.9613;
             const danhugLng = 124.6483;
@@ -2505,6 +2768,7 @@ async function stageIncidentLocally(title, category, description, address, lat, 
 
             localStorage.removeItem('bayaniwatch_user');
             closeLogoutModal();
+            stopSirenAlarm();
             
             document.getElementById('homeTab').classList.add('hidden');
             document.getElementById('mapTab').classList.add('hidden');
@@ -2527,8 +2791,6 @@ async function stageIncidentLocally(title, category, description, address, lat, 
                 const user = JSON.parse(saved);
                 await initDashboard(user);
             }
-
-            setInterval(checkActiveSos, 3000);
         };
     </script>
 </body>
