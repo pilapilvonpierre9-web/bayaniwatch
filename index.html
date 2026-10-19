@@ -886,44 +886,45 @@
         }
 
         // --- SUPABASE REALTIME SUBSCRIPTION ENGINE ---
-        function subscribeToRealtimeEvents() {
-            if (!window.supabase) return;
+function subscribeToRealtimeEvents() {
+    if (!window.supabase) return;
 
-            window.supabase
-                .channel('public:sos_alerts')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
-                    (payload) => {
-                        const newSos = payload.new;
-                        if (newSos && newSos.status === 'ACTIVE') {
-                            displayRealtimeSosBanner({
-                                sender: newSos.username || 'Resident',
-                                title: '🚨 CRITICAL SOS EMERGENCY',
-                                description: 'Immediate assistance requested by resident!',
-                                address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
-                                lat: newSos.latitude,
-                                lng: newSos.longitude,
-                                time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                media_url: newSos.media_url,
-                                media_type: newSos.media_type
-                            });
-                        }
-                    }
-                )
-                .subscribe();
+    window.supabase
+        .channel('public:sos_alerts')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
+            (payload) => {
+                const newSos = payload.new;
+                if (newSos && newSos.status === 'ACTIVE') {
+                    displayRealtimeSosBanner({
+                        sender: newSos.username || 'Resident',
+                        title: '🚨 CRITICAL SOS EMERGENCY',
+                        // Read dynamic details sent from resident modal
+                        description: newSos.details || 'Immediate assistance requested by resident!',
+                        address: `Purok near Lat: ${parseFloat(newSos.latitude).toFixed(4)}, Lng: ${parseFloat(newSos.longitude).toFixed(4)}`,
+                        lat: newSos.latitude,
+                        lng: newSos.longitude,
+                        time: new Date(newSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        media_url: newSos.media_url,
+                        media_type: newSos.media_type
+                    });
+                }
+            }
+        )
+        .subscribe();
 
-            window.supabase
-                .channel('public:incidents')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'incidents' },
-                    async () => {
-                        await fetchIncidents();
-                    }
-                )
-                .subscribe();
-        }
+    window.supabase
+        .channel('public:incidents')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'incidents' },
+            async () => {
+                await fetchIncidents();
+            }
+        )
+        .subscribe();
+}
 
         function displayRealtimeSosBanner(sosData) {
             if (!currentUser) {
@@ -1821,17 +1822,19 @@
 
                 if (error) throw error;
 
-                await supabase.from('sos_alerts').insert([
-                    {
-                        user_id: currentUser ? currentUser.user_id : null,
-                        username: currentUser ? currentUser.username : 'Resident',
-                        latitude: lat,
-                        longitude: lng,
-                        status: 'ACTIVE',
-                        media_url: uploadedMediaUrl,
-                        media_type: sosMediaType
-                    }
-                ]);
+               // Inside confirmAndBroadcastSos() -> update the sos_alerts insert block:
+await supabase.from('sos_alerts').insert([
+    {
+        user_id: currentUser ? currentUser.user_id : null,
+        username: currentUser ? currentUser.username : 'Resident',
+        latitude: lat,
+        longitude: lng,
+        status: 'ACTIVE',
+        details: details, // <-- Include typed description here
+        media_url: uploadedMediaUrl,
+        media_type: sosMediaType
+    }
+]);
 
                 await supabase.from('log_trails').insert([
                     {
