@@ -861,60 +861,28 @@
             if (alertBox) alertBox.classList.add('hidden');
         }
 
-        // --- WEB AUDIO API EMERGENCY SIREN SYNTHESIZER ---
-        let audioCtx = null;
+        // --- RESTORED AUDIO ALARM OBJECT (./alarm.mp3) ---
+        const sosAudio = new Audio('./alarm.mp3');
+        sosAudio.loop = true;
 
-        function unlockAudioContext() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+        // Unlocks audio context on mobile Safari / Chrome on first screen interaction
+        function unlockMobileAudio() {
+            sosAudio.play().then(() => {
+                sosAudio.pause();
+                sosAudio.currentTime = 0;
+            }).catch(e => console.log("Audio touch-unlock registered"));
         }
 
-        document.addEventListener('click', unlockAudioContext, { once: true });
-        document.addEventListener('touchstart', unlockAudioContext, { once: true });
-
-        function playEmergencySirenSound() {
-            try {
-                unlockAudioContext();
-                if (!audioCtx) return;
-
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(850, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.35);
-
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.35);
-            } catch (e) {
-                console.log("Audio siren error:", e);
-            }
-        }
-
-        let sirenInterval = null;
+        document.addEventListener('click', unlockMobileAudio, { once: true });
+        document.addEventListener('touchstart', unlockMobileAudio, { once: true });
 
         function startSirenAlarm() {
-            if (!sirenInterval) {
-                playEmergencySirenSound();
-                sirenInterval = setInterval(playEmergencySirenSound, 500);
-            }
+            sosAudio.play().catch(e => console.log("Autoplay prevented or missing file:", e));
         }
 
         function stopSirenAlarm() {
-            if (sirenInterval) {
-                clearInterval(sirenInterval);
-                sirenInterval = null;
-            }
+            sosAudio.pause();
+            sosAudio.currentTime = 0;
         }
 
         // --- SUPABASE REALTIME SUBSCRIPTION ENGINE ---
@@ -957,42 +925,34 @@
                 .subscribe();
         }
 
-       // --- ROLE-RESTRICTED SOS ALERT ENGINE ---
-function displayRealtimeSosBanner(sosData) {
-    if (!currentUser) return;
+        function displayRealtimeSosBanner(sosData) {
+            if (!currentUser) {
+                const saved = localStorage.getItem('bayaniwatch_user');
+                if (saved) currentUser = JSON.parse(saved);
+            }
 
-    // Strict Role Guard: Only Officers (Tanod / Admin) receive the alarm & popup
-    const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
-    if (!isOfficer) {
-        dismissSosBanner();
-        return;
-    }
+            if (!currentUser) return;
 
-    const sosBanner = document.getElementById('sosWarningBanner');
-    if (!sosBanner) return;
+            // Strict Role Guard: Only Tanods or Admins hear the alarm & see popup
+            const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
+            if (!isOfficer) {
+                dismissSosBanner();
+                return;
+            }
 
-    localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
+            const sosBanner = document.getElementById('sosWarningBanner');
+            if (!sosBanner) return;
 
-    document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
-    document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
-    document.getElementById('sosAddress').innerText = sosData.address;
-    document.getElementById('sosTime').innerText = sosData.time;
+            localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
 
-    sosBanner.classList.remove('hidden');
-    startSirenAlarm();
-}
+            document.getElementById('sosSender').innerText = `Reported by: ${sosData.sender}`;
+            document.getElementById('sosMessage').innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
+            document.getElementById('sosAddress').innerText = sosData.address;
+            document.getElementById('sosTime').innerText = sosData.time;
 
-function checkActiveSos() {
-    const activeSos = localStorage.getItem('bayaniwatch_sos_active');
-    if (!currentUser) return;
-
-    const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
-    if (activeSos && isOfficer) {
-        displayRealtimeSosBanner(JSON.parse(activeSos));
-    } else {
-        dismissSosBanner();
-    }
-}
+            sosBanner.classList.remove('hidden');
+            startSirenAlarm();
+        }
 
         let pendingResolveIncidentId = null;
 
