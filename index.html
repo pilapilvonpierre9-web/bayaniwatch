@@ -1207,6 +1207,7 @@
             });
         }
 
+        // --- FIXED REALTIME SOS BANNER DISPLAY FUNCTION ---
         function displayRealtimeSosBanner(sosData) {
             if (!currentUser) {
                 const saved = localStorage.getItem('bayaniwatch_user');
@@ -1216,7 +1217,8 @@
             if (!currentUser) return;
 
             // Strict Role Guard: Only Tanods or Admins hear the alarm & see popup banner
-            const isOfficer = currentUser.role === 'admin' || currentUser.role === 'tanod';
+            const role = (currentUser.role || '').toLowerCase();
+            const isOfficer = role === 'admin' || role === 'tanod';
             if (!isOfficer) {
                 dismissSosBanner();
                 return;
@@ -1224,12 +1226,20 @@
 
             localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
 
+            // Precise DOM ID lookup matching both Mobile and Desktop layout markup
             const setSosInfo = (prefix) => {
-                const senderEl = document.getElementById(`${prefix}SosSender`);
-                const msgEl = document.getElementById(`${prefix}SosMessage`);
-                const addrEl = document.getElementById(`${prefix}SosAddress`);
-                const timeEl = document.getElementById(`${prefix}SosTime`);
-                const bannerEl = document.getElementById(`${prefix}SosWarningBanner`);
+                const isMobile = prefix === '';
+                const senderId = isMobile ? 'sosSender' : 'adminSosSender';
+                const msgId = isMobile ? 'sosMessage' : 'adminSosMessage';
+                const addrId = isMobile ? 'sosAddress' : 'adminSosAddress';
+                const timeId = isMobile ? 'sosTime' : 'adminSosTime';
+                const bannerId = isMobile ? 'sosWarningBanner' : 'adminSosWarningBanner';
+
+                const senderEl = document.getElementById(senderId);
+                const msgEl = document.getElementById(msgId);
+                const addrEl = document.getElementById(addrId);
+                const timeEl = document.getElementById(timeId);
+                const bannerEl = document.getElementById(bannerId);
 
                 if (senderEl) senderEl.innerText = `Reported by: ${sosData.sender}`;
                 if (msgEl) msgEl.innerHTML = `<strong>[${sosData.title}]</strong>: "${sosData.description}"`;
@@ -1238,8 +1248,8 @@
                 if (bannerEl) bannerEl.classList.remove('hidden');
             };
 
-            setSosInfo('');
-            setSosInfo('admin');
+            setSosInfo('');      // Populates Mobile Tanod Banner
+            setSosInfo('admin'); // Populates Desktop Admin Banner
 
             startSirenAlarm();
         }
