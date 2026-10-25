@@ -122,6 +122,16 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <!-- IAS Section H: Admin Backup & Restore Launcher -->
+                <button onclick="openBackupModal()" class="bg-safetygreen hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow flex items-center gap-1.5">
+                    <i class="fa-solid fa-database"></i> Backup & Restore
+                </button>
+
+                <!-- IAS Section A: Admin User Management Launcher -->
+                <button onclick="openUserMgmtModal()" class="bg-navy-light hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow flex items-center gap-1.5 border border-slate-600">
+                    <i class="fa-solid fa-users-gear"></i> User Control
+                </button>
+
                 <button onclick="triggerEmergencySOS()" class="bg-alertred hover:bg-red-700 text-white text-xs font-black px-3.5 py-1.5 rounded-xl transition shadow active:scale-95 uppercase flex items-center gap-1.5">
                     <i class="fa-solid fa-bell animate-pulse"></i> Send SOS
                 </button>
@@ -338,10 +348,10 @@
 
                 <form id="loginForm" class="space-y-3.5 my-auto" onsubmit="handleLogin(event)">
                     <div>
-                        <label class="block text-[10px] font-bold text-navy uppercase tracking-wider mb-1">Username</label>
+                        <label class="block text-[10px] font-bold text-navy uppercase tracking-wider mb-1">Username / Email</label>
                         <div class="relative">
                             <i class="fa-solid fa-user-shield absolute left-3.5 top-3 text-slate-400 text-xs"></i>
-                            <input type="text" id="username" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-skyblue text-xs text-slate-800 shadow-sm transition" placeholder="Enter username">
+                            <input type="text" id="username" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-skyblue text-xs text-slate-800 shadow-sm transition" placeholder="Enter username or email">
                         </div>
                     </div>
 
@@ -359,6 +369,15 @@
                             <button type="button" onclick="openForgotPasswordModal()" class="text-[10px] font-bold text-skyblue hover:underline">
                                 Forgot Password?
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- IAS Section D: CAPTCHA Challenge Trigger (Revealed on repeated failed logins or lockouts) -->
+                    <div id="captchaBox" class="hidden bg-slate-100 p-2.5 rounded-xl border border-slate-300 text-xs space-y-1">
+                        <label class="block text-[9px] font-bold text-navy uppercase">Security CAPTCHA Challenge</label>
+                        <div class="flex items-center gap-2">
+                            <span id="captchaText" class="font-mono bg-navy text-white px-2.5 py-1 rounded font-black text-xs tracking-wider">5 + 7 = ?</span>
+                            <input type="number" id="captchaInput" class="w-20 px-2 py-1 border rounded-lg text-xs bg-white focus:outline-none" placeholder="Result">
                         </div>
                     </div>
 
@@ -396,7 +415,7 @@
                 </div>
             </div>
 
-            <!-- 2. REGISTER SCREEN -->
+            <!-- 2. REGISTER SCREEN (WITH IAS SECTION C PASSWORD RULES INDICATOR) -->
             <div id="registerScreen" class="hidden flex-1 flex flex-col justify-between p-6">
                 <div class="text-center mt-1">
                     <h2 class="text-base font-black text-navy tracking-tight">Resident Registration</h2>
@@ -417,8 +436,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Email (Optional)</label>
-                        <input type="email" id="regEmail" class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="juan@example.com">
+                        <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Email (Required for OTP)</label>
+                        <input type="email" id="regEmail" required class="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="juan@example.com">
                     </div>
 
                     <div>
@@ -433,10 +452,18 @@
                     <div>
                         <label class="block text-[9px] font-bold text-navy uppercase mb-0.5">Password</label>
                         <div class="relative">
-                            <input type="password" id="regPassword" required class="w-full pl-2.5 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="Create password">
+                            <input type="password" id="regPassword" onkeyup="checkPasswordComplexity(this.value, 'regRules')" required class="w-full pl-2.5 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-skyblue" placeholder="Create password">
                             <button type="button" onclick="togglePasswordVisibility('regPassword', 'regEyeIcon')" class="absolute right-2.5 top-1.5 text-slate-400">
                                 <i id="regEyeIcon" class="fa-solid fa-eye text-xs"></i>
                             </button>
+                        </div>
+                        
+                        <!-- IAS Section C: Password Complexity Rule Checklist -->
+                        <div id="regRules" class="text-[8px] grid grid-cols-2 gap-x-1 mt-1 font-semibold text-slate-400">
+                            <span id="ruleLen" class="text-alertred">✖ Min 8 chars</span>
+                            <span id="ruleCase" class="text-alertred">✖ Upper & Lower</span>
+                            <span id="ruleNum" class="text-alertred">✖ Number (0-9)</span>
+                            <span id="ruleSpec" class="text-alertred">✖ Special (!@#$)</span>
                         </div>
                     </div>
 
@@ -746,6 +773,12 @@
                             <span class="text-safetygreen font-bold uppercase">Active</span>
                         </div>
                     </div>
+
+                    <!-- Account Security Controls (IAS Section B/C) -->
+                    <button onclick="openAccountSettingsModal()" class="w-full bg-navy/10 text-navy font-bold py-2.5 rounded-xl text-xs hover:bg-navy hover:text-white transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-lock"></i> Security & Account Settings
+                    </button>
+
                     <button onclick="openLogoutModal()" class="w-full bg-red-50 text-alertred border border-red-200 font-bold py-2.5 rounded-xl text-xs active:scale-95 transition">
                         Sign Out Account
                     </button>
@@ -780,6 +813,126 @@
     </div>
 
     <!-- SHARED GLOBAL MODALS -->
+
+    <!-- IAS SECTION H: DATABASE BACKUP AND RECOVERY MODAL -->
+    <div id="backupRestoreModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xs font-black text-navy uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-database text-skyblue"></i> System Database Backup & Recovery
+                </h3>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Backup Panel -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                    <h4 class="text-xs font-bold text-navy flex items-center gap-1.5">
+                        <i class="fa-solid fa-download text-safetygreen"></i> Database Backup Snapshot
+                    </h4>
+                    <p class="text-[10px] text-slate-500 leading-tight">Export full JSON snapshot containing incidents, user accounts, audit logs, and barangay advisories.</p>
+                    <div class="flex items-center gap-2 pt-1">
+                        <button onclick="triggerDatabaseBackup()" class="bg-safetygreen hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-export"></i> Export System Backup
+                        </button>
+                        <label class="flex items-center gap-1 text-[10px] text-slate-600 font-semibold cursor-pointer">
+                            <input type="checkbox" id="autoBackupSchedule" checked class="rounded text-skyblue"> Auto-Scheduled
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Restore Panel -->
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                    <h4 class="text-xs font-bold text-navy flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left text-alertamber"></i> Restore Database Snapshot
+                    </h4>
+                    <p class="text-[10px] text-slate-500 leading-tight">Upload a valid exported `.json` database file to restore incident data and logs into Supabase.</p>
+                    <input type="file" id="backupFileInput" accept=".json" class="text-xs text-slate-500 w-full p-1 border rounded-lg bg-white">
+                    <button onclick="restoreDatabaseFromBackup()" class="w-full bg-navy hover:bg-navy-light text-white font-bold text-xs py-2 rounded-xl shadow transition flex items-center justify-center gap-1.5 uppercase">
+                        <i class="fa-solid fa-upload"></i> Restore Data from File
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-right pt-2 border-t">
+                <button onclick="closeBackupModal()" class="bg-slate-200 text-slate-700 font-bold text-xs px-4 py-2 rounded-xl">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- IAS SECTION A: ADMIN USER MANAGEMENT MODAL -->
+    <div id="userManagementModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xs font-black text-navy uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-skyblue"></i> User Account Control & Roles
+                </h3>
+                <button onclick="closeUserMgmtModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="userMgmtSearch" onkeyup="filterUserMgmtList()" placeholder="Search users by name, username, email..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 flex-1">
+            </div>
+            <div id="userMgmtList" class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                <p class="text-xs text-slate-400 text-center py-4">Loading user accounts...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- IAS SECTION B & C: USER SECURITY & ACCOUNT SETTINGS MODAL -->
+    <div id="accountSettingsModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-md space-y-3">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-xs font-black text-navy uppercase">Security & Account Settings</h3>
+                <button onclick="closeAccountSettingsModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Change Password Form -->
+            <form id="changePasswordForm" onsubmit="handleChangePassword(event)" class="space-y-2 pt-1 border-b pb-3">
+                <h4 class="text-xs font-bold text-navy uppercase">Change Password</h4>
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase">Current Password</label>
+                    <input type="password" id="currPassword" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase">New Password</label>
+                    <input type="password" id="newPassword" onkeyup="checkPasswordComplexity(this.value, 'changePassRules')" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50">
+                    <div id="changePassRules" class="text-[8px] grid grid-cols-2 gap-x-1 mt-1 font-semibold text-slate-400">
+                        <span id="cRuleLen" class="text-alertred">✖ Min 8 chars</span>
+                        <span id="cRuleCase" class="text-alertred">✖ Upper & Lower</span>
+                        <span id="cRuleNum" class="text-alertred">✖ Number (0-9)</span>
+                        <span id="cRuleSpec" class="text-alertred">✖ Special (!@#$)</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50">
+                </div>
+                <button type="submit" class="w-full bg-navy text-white font-bold py-2 rounded-xl text-xs uppercase shadow">Update Password</button>
+            </form>
+
+            <!-- Change Email Form -->
+            <form id="changeEmailForm" onsubmit="handleChangeEmail(event)" class="space-y-2">
+                <h4 class="text-xs font-bold text-navy uppercase">Change Registered Email</h4>
+                <div>
+                    <label class="block text-[9px] font-bold text-navy uppercase">New Email Address</label>
+                    <input type="email" id="newEmailInput" required class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-slate-50">
+                </div>
+                <button type="submit" class="w-full bg-skyblue text-white font-bold py-2 rounded-xl text-xs uppercase shadow">Verify & Update Email</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- IAS SECTION E: SESSION INACTIVITY WARNING MODAL -->
+    <div id="inactivityModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-5 w-full max-w-xs text-center space-y-3">
+            <div class="w-10 h-10 bg-alertamber/20 text-alertamber rounded-full flex items-center justify-center mx-auto text-lg">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 class="text-sm font-bold text-navy">Session Inactivity Warning</h3>
+            <p class="text-xs text-slate-600">You have been idle. You will be automatically logged out in <span id="inactivityCountdown" class="font-bold text-alertred">60</span> seconds.</p>
+            <button onclick="resetInactivityTimer()" class="w-full bg-navy text-white text-xs font-bold py-2 rounded-xl shadow uppercase">Stay Logged In</button>
+        </div>
+    </div>
 
     <!-- Modal: Resolution Proof & Notes -->
     <div id="resolveModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -1149,6 +1302,396 @@
 
         let realtimeChannel = null;
 
+        // --- IAS SECTION E: SESSION INACTIVITY & MULTI-TAB SYNC ENGINE ---
+        let inactivityTimer = null;
+        let warningTimer = null;
+        let countdownInterval = null;
+        const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 Minutes
+        const WARNING_BUFFER_MS = 60 * 1000;      // 1 Minute Warning
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            clearTimeout(warningTimer);
+            clearInterval(countdownInterval);
+
+            const warnModal = document.getElementById('inactivityModal');
+            if (warnModal) warnModal.classList.add('hidden');
+
+            if (!currentUser) return;
+
+            warningTimer = setTimeout(() => {
+                showInactivityWarning();
+            }, INACTIVITY_LIMIT_MS - WARNING_BUFFER_MS);
+
+            inactivityTimer = setTimeout(() => {
+                autoLogoutDueToInactivity();
+            }, INACTIVITY_LIMIT_MS);
+        }
+
+        function showInactivityWarning() {
+            const warnModal = document.getElementById('inactivityModal');
+            if (warnModal) warnModal.classList.remove('hidden');
+
+            let secondsLeft = 60;
+            const counterEl = document.getElementById('inactivityCountdown');
+            if (counterEl) counterEl.innerText = secondsLeft;
+
+            countdownInterval = setInterval(() => {
+                secondsLeft--;
+                if (counterEl) counterEl.innerText = secondsLeft;
+                if (secondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+        }
+
+        async function autoLogoutDueToInactivity() {
+            if (!currentUser) return;
+            try {
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    action: 'AUTOMATED TIMEOUT: Logged out due to 15 minutes inactivity'
+                }]);
+            } catch (e) {}
+
+            showAppToast('SESSION EXPIRED', 'Logged out automatically after 15 minutes of inactivity.', true);
+            confirmLogout();
+        }
+
+        ['mousemove', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (currentUser) resetInactivityTimer();
+            }, { passive: true });
+        });
+
+        // Multi-Tab Sync listener via BroadcastChannel
+        const sessionSyncChannel = new BroadcastChannel('bayaniwatch_session_sync');
+        sessionSyncChannel.onmessage = (event) => {
+            if (event.data === 'LOGOUT') {
+                confirmLogout(true);
+            }
+        };
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'bayaniwatch_user' && !e.newValue) {
+                confirmLogout(true);
+            }
+        });
+
+        // --- IAS SECTION C: PASSWORD COMPLEXITY VALIDATION CHECKER ---
+        function checkPasswordComplexity(password, targetContainerId) {
+            const hasLength = password.length >= 8;
+            const hasUpperLower = /[a-z]/.test(password) && /[A-Z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+            const container = document.getElementById(targetContainerId);
+            if (!container) return hasLength && hasUpperLower && hasNumber && hasSpecial;
+
+            const updateRule = (id, isValid, text) => {
+                const el = container.querySelector(`#${id}`);
+                if (el) {
+                    el.className = isValid ? "text-safetygreen" : "text-alertred";
+                    el.innerText = `${isValid ? '✔' : '✖'} ${text}`;
+                }
+            };
+
+            const isChangePass = targetContainerId === 'changePassRules';
+            const prefix = isChangePass ? 'cRule' : 'rule';
+
+            updateRule(`${prefix}Len`, hasLength, 'Min 8 chars');
+            updateRule(`${prefix}Case`, hasUpperLower, 'Upper & Lower');
+            updateRule(`${prefix}Num`, hasNumber, 'Number (0-9)');
+            updateRule(`${prefix}Spec`, hasSpecial, 'Special (!@#$)');
+
+            return hasLength && hasUpperLower && hasNumber && hasSpecial;
+        }
+
+        // --- IAS SECTION H: DATABASE BACKUP AND RECOVERY ENGINE ---
+        function openBackupModal() {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
+                showAppToast('UNAUTHORIZED', 'Only Barangay Admins can manage system backups.', true);
+                return;
+            }
+            document.getElementById('backupRestoreModal').classList.remove('hidden');
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupRestoreModal').classList.add('hidden');
+        }
+
+        async function triggerDatabaseBackup() {
+            try {
+                const [incidentsRes, usersRes, logsRes, advisoriesRes, sosRes] = await Promise.all([
+                    supabase.from('incidents').select('*'),
+                    supabase.from('users').select('user_id, full_name, username, email, role, status, is_on_duty, created_at'),
+                    supabase.from('log_trails').select('*'),
+                    supabase.from('announcements').select('*'),
+                    supabase.from('sos_alerts').select('*')
+                ]);
+
+                const backupObject = {
+                    system: "BAYANIWATCH",
+                    version: "1.0-IAS1",
+                    timestamp: new Date().toISOString(),
+                    database_tables: {
+                        incidents: incidentsRes.data || [],
+                        users: usersRes.data || [],
+                        log_trails: logsRes.data || [],
+                        announcements: advisoriesRes.data || [],
+                        sos_alerts: sosRes.data || []
+                    }
+                };
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObject, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `BayaniWatch_Backup_${new Date().toISOString().slice(0,10)}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser ? currentUser.user_id : null,
+                    username: currentUser ? currentUser.username : 'Admin',
+                    action: 'EXECUTED SYSTEM BACKUP: Exported JSON snapshot'
+                }]);
+
+                showAppToast('BACKUP EXPORTED', 'Database snapshot exported to backup file.');
+            } catch (err) {
+                showAppToast('BACKUP FAILED', err.message, true);
+            }
+        }
+
+        async function restoreDatabaseFromBackup() {
+            const fileInput = document.getElementById('backupFileInput');
+            if (!fileInput.files || !fileInput.files[0]) {
+                showAppToast('RESTORE ERROR', 'Please select a valid .json backup snapshot file.', true);
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    if (!backupData.database_tables) {
+                        throw new Error('Invalid backup schema format.');
+                    }
+
+                    if (backupData.database_tables.incidents && backupData.database_tables.incidents.length > 0) {
+                        await supabase.from('incidents').upsert(backupData.database_tables.incidents);
+                    }
+                    if (backupData.database_tables.announcements && backupData.database_tables.announcements.length > 0) {
+                        await supabase.from('announcements').upsert(backupData.database_tables.announcements);
+                    }
+
+                    await supabase.from('log_trails').insert([{
+                        user_id: currentUser ? currentUser.user_id : null,
+                        username: currentUser ? currentUser.username : 'Admin',
+                        action: `RESTORED DATABASE SNAPSHOT from backup file: ${file.name}`
+                    }]);
+
+                    closeBackupModal();
+                    await fetchIncidents();
+                    await fetchAnnouncements();
+                    if (typeof fetchLogTrails === 'function') fetchLogTrails();
+
+                    showAppToast('RESTORE COMPLETE', 'Database records successfully restored from backup.');
+                } catch (err) {
+                    showAppToast('RESTORE FAILED', 'Invalid backup file: ' + err.message, true);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        // --- IAS SECTION A: ADMIN USER MANAGEMENT CONTROLLER ---
+        function openUserMgmtModal() {
+            if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
+                showAppToast('UNAUTHORIZED', 'Only Barangay Admins can view user management.', true);
+                return;
+            }
+            document.getElementById('userManagementModal').classList.remove('hidden');
+            fetchUserAccounts();
+        }
+
+        function closeUserMgmtModal() {
+            document.getElementById('userManagementModal').classList.add('hidden');
+        }
+
+        let allUserAccounts = [];
+
+        async function fetchUserAccounts() {
+            const list = document.getElementById('userMgmtList');
+            try {
+                const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+
+                allUserAccounts = data || [];
+                renderUserMgmtList(allUserAccounts);
+            } catch (err) {
+                if (list) list.innerHTML = `<p class="text-xs text-red-500 text-center py-4">Failed to load users.</p>`;
+            }
+        }
+
+        function renderUserMgmtList(users) {
+            const list = document.getElementById('userMgmtList');
+            if (!list) return;
+
+            if (!users || users.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">No users found.</p>`;
+                return;
+            }
+
+            list.innerHTML = users.map(u => `
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-navy text-xs">${u.full_name}</span>
+                            <span class="text-[9px] bg-navy/10 text-navy font-bold px-1.5 py-0.2 rounded uppercase">${u.role}</span>
+                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded ${u.status === 'disabled' ? 'bg-red-100 text-alertred' : 'bg-emerald-100 text-safetygreen'}">${u.status || 'active'}</span>
+                        </div>
+                        <p class="text-[10px] text-slate-500">@${u.username} • ${u.email || 'No Email'}</p>
+                    </div>
+
+                    <div class="flex items-center gap-1.5">
+                        <select onchange="updateUserRole('${u.user_id}', this.value)" class="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-1 font-semibold text-slate-700">
+                            <option value="resident" ${u.role === 'resident' ? 'selected' : ''}>Resident</option>
+                            <option value="tanod" ${u.role === 'tanod' ? 'selected' : ''}>Tanod</option>
+                            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        <button onclick="toggleUserAccountStatus('${u.user_id}', '${u.status || 'active'}')" class="text-[10px] font-bold px-2 py-1 rounded transition ${u.status === 'disabled' ? 'bg-safetygreen text-white' : 'bg-alertred text-white'}">
+                            ${u.status === 'disabled' ? 'Activate' : 'Disable'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterUserMgmtList() {
+            const query = (document.getElementById('userMgmtSearch').value || '').toLowerCase();
+            const filtered = allUserAccounts.filter(u => 
+                (u.full_name || '').toLowerCase().includes(query) ||
+                (u.username || '').toLowerCase().includes(query) ||
+                (u.email || '').toLowerCase().includes(query)
+            );
+            renderUserMgmtList(filtered);
+        }
+
+        async function updateUserRole(userId, newRole) {
+            try {
+                await supabase.from('users').update({ role: newRole }).eq('user_id', userId);
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    action: `Assigned role '${newRole}' to User ID #${userId}`
+                }]);
+                showAppToast('ROLE UPDATED', `Assigned new role: ${newRole.toUpperCase()}`);
+                fetchUserAccounts();
+            } catch (err) {
+                showAppToast('UPDATE FAILED', err.message, true);
+            }
+        }
+
+        async function toggleUserAccountStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'disabled' ? 'active' : 'disabled';
+            try {
+                await supabase.from('users').update({ status: newStatus }).eq('user_id', userId);
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    action: `Set account status of User ID #${userId} to '${newStatus}'`
+                }]);
+                showAppToast('ACCOUNT STATUS UPDATED', `User set to ${newStatus.toUpperCase()}`);
+                fetchUserAccounts();
+            } catch (err) {
+                showAppToast('STATUS UPDATE FAILED', err.message, true);
+            }
+        }
+
+        // --- IAS SECTION B & C: ACCOUNT SETTINGS & PASSWORD CHANGE CONTROLLER ---
+        function openAccountSettingsModal() {
+            document.getElementById('accountSettingsModal').classList.remove('hidden');
+        }
+
+        function closeAccountSettingsModal() {
+            document.getElementById('accountSettingsModal').classList.add('hidden');
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const currPass = document.getElementById('currPassword').value.trim();
+            const newPass = document.getElementById('newPassword').value.trim();
+            const confirmPass = document.getElementById('confirmNewPassword').value.trim();
+
+            if (!checkPasswordComplexity(newPass, 'changePassRules')) {
+                showAppToast('WEAK PASSWORD', 'Password does not meet required security complexity rules.', true);
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showAppToast('MISMATCH', 'New passwords do not match.', true);
+                return;
+            }
+
+            try {
+                const { data: userRecord, error: verifyErr } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('user_id', currentUser.user_id)
+                    .single();
+
+                if (verifyErr || (userRecord.password_hash !== currPass && userRecord.password !== currPass)) {
+                    showAppToast('VERIFICATION FAILED', 'Current password is incorrect.', true);
+                    return;
+                }
+
+                await supabase.from('users').update({ password_hash: newPass }).eq('user_id', currentUser.user_id);
+
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    action: 'User changed account password'
+                }]);
+
+                closeAccountSettingsModal();
+                document.getElementById('changePasswordForm').reset();
+                showAppToast('PASSWORD UPDATED', 'Password changed successfully!');
+
+            } catch (err) {
+                showAppToast('UPDATE FAILED', err.message, true);
+            }
+        }
+
+        async function handleChangeEmail(e) {
+            e.preventDefault();
+            const newEmail = document.getElementById('newEmailInput').value.trim();
+
+            try {
+                await supabase.from('users').update({ email: newEmail }).eq('user_id', currentUser.user_id);
+                currentUser.email = newEmail;
+                localStorage.setItem('bayaniwatch_user', JSON.stringify(currentUser));
+
+                document.getElementById('profileEmail').innerText = newEmail;
+
+                await supabase.from('log_trails').insert([{
+                    user_id: currentUser.user_id,
+                    username: currentUser.username,
+                    action: `Updated registered email address to '${newEmail}'`
+                }]);
+
+                closeAccountSettingsModal();
+                document.getElementById('changeEmailForm').reset();
+                showAppToast('EMAIL UPDATED', 'Registered email updated successfully.');
+
+            } catch (err) {
+                showAppToast('UPDATE FAILED', err.message, true);
+            }
+        }
+
         // --- DUAL-CHANNEL REALTIME SUBSCRIPTION ENGINE ---
         function subscribeToRealtimeEvents() {
             if (!window.supabase) return;
@@ -1157,19 +1700,16 @@
                 window.supabase.removeChannel(realtimeChannel);
             }
 
-            // Global WebSockets room for instant cross-device broadcast
             realtimeChannel = window.supabase.channel('bayaniwatch_sos_room', {
                 config: { broadcast: { self: true } }
             });
 
-            // 1. Instant WebSocket Broadcast Receiver (<50ms trigger)
             realtimeChannel.on('broadcast', { event: 'sos_trigger' }, (response) => {
                 if (response && response.payload) {
                     displayRealtimeSosBanner(response.payload);
                 }
             });
 
-            // 2. Database Insert Event Listener (Postgres Fallback)
             realtimeChannel.on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
@@ -1193,7 +1733,6 @@
                 }
             );
 
-            // 3. Database Incident Table Change Listener
             realtimeChannel.on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'incidents' },
@@ -1207,7 +1746,6 @@
             });
         }
 
-        // --- FIXED REALTIME SOS BANNER DISPLAY FUNCTION ---
         function displayRealtimeSosBanner(sosData) {
             if (!currentUser) {
                 const saved = localStorage.getItem('bayaniwatch_user');
@@ -1216,7 +1754,6 @@
 
             if (!currentUser) return;
 
-            // Strict Role Guard: Only Tanods or Admins hear the alarm & see popup banner
             const role = (currentUser.role || '').toLowerCase();
             const isOfficer = role === 'admin' || role === 'tanod';
             if (!isOfficer) {
@@ -1226,7 +1763,6 @@
 
             localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosData));
 
-            // Precise DOM ID lookup matching both Mobile and Desktop layout markup
             const setSosInfo = (prefix) => {
                 const isMobile = prefix === '';
                 const senderId = isMobile ? 'sosSender' : 'adminSosSender';
@@ -1248,13 +1784,12 @@
                 if (bannerEl) bannerEl.classList.remove('hidden');
             };
 
-            setSosInfo('');      // Populates Mobile Tanod Banner
-            setSosInfo('admin'); // Populates Desktop Admin Banner
+            setSosInfo('');
+            setSosInfo('admin');
 
             startSirenAlarm();
         }
 
-        // --- ADMIN BARANGAY ADVISORY CONTROLLER ---
         function openCreateAdvisoryModal() {
             if (!currentUser || currentUser.role.toLowerCase() !== 'admin') {
                 showAppToast('UNAUTHORIZED', 'Only Barangay Admins can post official advisories.', true);
@@ -1382,7 +1917,6 @@
             }
         }
 
-        // --- TANOD DUTY STATUS TOGGLE ---
         async function toggleTanodDutyStatus() {
             if (!currentUser) return;
             const newDutyState = !currentUser.is_on_duty;
@@ -1430,7 +1964,6 @@
             }
         }
 
-        // --- FETCH ANNOUNCEMENTS ---
         async function fetchAnnouncements() {
             const container = document.getElementById('announcementsList');
             const adminContainer = document.getElementById('adminAnnouncementsList');
@@ -1469,7 +2002,6 @@
             }
         }
 
-        // --- OFFLINE LOCAL STAGING ENGINE ---
         function isOnline() {
             return navigator.onLine;
         }
@@ -2173,7 +2705,6 @@
                 const detailsInput = document.getElementById('sosModalDetails');
                 if (detailsInput) detailsInput.value = '';
 
-                // 1. Send Instant WebSockets Broadcast to all connected phones/PCs
                 if (realtimeChannel) {
                     realtimeChannel.send({
                         type: 'broadcast',
@@ -2182,7 +2713,6 @@
                     });
                 }
 
-                // 2. Insert into Incidents Blotter
                 const { error } = await supabase
                     .from('incidents')
                     .insert([
@@ -2201,7 +2731,6 @@
 
                 if (error) throw error;
 
-                // 3. Insert into sos_alerts table
                 await supabase.from('sos_alerts').insert([
                     {
                         user_id: currentUser ? currentUser.user_id : null,
@@ -2377,6 +2906,17 @@
             box.innerText = msg;
         }
 
+        // --- IAS SECTION D: PROGRESSIVE LOCKOUT & CAPTCHA CHALLENGE LOGIN HANDLER ---
+        let currentCaptchaAnswer = null;
+
+        function generateCaptchaChallenge() {
+            const num1 = Math.floor(Math.random() * 9) + 1;
+            const num2 = Math.floor(Math.random() * 9) + 1;
+            currentCaptchaAnswer = num1 + num2;
+            const textEl = document.getElementById('captchaText');
+            if (textEl) textEl.innerText = `${num1} + ${num2} = ?`;
+        }
+
         async function handleLogin(e) {
             if (e) e.preventDefault();
             const username = document.getElementById('username').value.trim();
@@ -2389,14 +2929,36 @@
 
             const attemptsKey = `bayaniwatch_attempts_${username.toLowerCase()}`;
             const lockKey = `bayaniwatch_lockuntil_${username.toLowerCase()}`;
+            const lockLevelKey = `bayaniwatch_locklevel_${username.toLowerCase()}`;
 
             const lockTime = localStorage.getItem(lockKey);
             const now = Date.now();
 
             if (lockTime && now < parseInt(lockTime)) {
                 const secondsLeft = Math.ceil((parseInt(lockTime) - now) / 1000);
-                showAlert(`ACCOUNT LOCKED: Too many failed attempts. Try again in ${secondsLeft}s.`, 'error');
+                showAlert(`ACCOUNT LOCKED: Progressive security lockout active. Try again in ${secondsLeft}s.`, 'error');
                 return;
+            }
+
+            let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
+            let lockLevel = parseInt(localStorage.getItem(lockLevelKey) || "1");
+
+            // Require CAPTCHA if failed attempts >= 2 or account was previously locked
+            const captchaBox = document.getElementById('captchaBox');
+            if (failedCount >= 2 || lockLevel > 1) {
+                if (captchaBox.classList.contains('hidden')) {
+                    captchaBox.classList.remove('hidden');
+                    generateCaptchaChallenge();
+                    showAlert('SECURITY NOTICE: CAPTCHA verification required.', 'error');
+                    return;
+                }
+
+                const userAns = parseInt(document.getElementById('captchaInput').value);
+                if (isNaN(userAns) || userAns !== currentCaptchaAnswer) {
+                    showAlert('CAPTCHA verification failed. Try again.', 'error');
+                    generateCaptchaChallenge();
+                    return;
+                }
             }
 
             setLoading(true);
@@ -2405,46 +2967,51 @@
                 const { data: user, error } = await supabase
                     .from('users')
                     .select('*')
-                    .eq('username', username)
+                    .or(`username.eq.${username},email.eq.${username}`)
                     .maybeSingle();
-
-                let failedCount = parseInt(localStorage.getItem(attemptsKey) || "0");
 
                 if (error || !user || !(user.password_hash === password || user.password === password)) {
                     failedCount += 1;
                     localStorage.setItem(attemptsKey, failedCount);
 
                     if (failedCount >= 3) {
-                        const lockDuration = 30 * 1000;
-                        localStorage.setItem(lockKey, (now + lockDuration).toString());
+                        // Progressive Lockout Duration: Level 1 = 1m (60s), Level 2 = 5m (300s), Level 3+ = 15m (900s)
+                        let lockSeconds = 60;
+                        if (lockLevel === 2) lockSeconds = 300;
+                        if (lockLevel >= 3) lockSeconds = 900;
+
+                        const lockDurationMs = lockSeconds * 1000;
+                        localStorage.setItem(lockKey, (now + lockDurationMs).toString());
+                        localStorage.setItem(lockLevelKey, (lockLevel + 1).toString());
                         localStorage.removeItem(attemptsKey);
 
-                        showAlert('🚨 LOCKDOWN ACTIVATED: 3 failed attempts! Account locked for 30s.', 'error');
+                        showAlert(`🚨 ACCOUNT LOCKED: Exceeded 3 failed attempts! Locked for ${lockSeconds / 60} min(s).`, 'error');
 
                         await supabase.from('log_trails').insert([
                             {
                                 user_id: user ? user.user_id : null,
                                 username: username,
-                                action: `SECURITY LOCKOUT: Exceeded 3 failed login attempts`
+                                action: `SECURITY LOCKOUT: Locked out for ${lockSeconds}s after 3 failed login attempts`
                             }
                         ]);
                     } else {
                         const remaining = 3 - failedCount;
-                        showAlert(`Incorrect credentials. ${remaining} attempt(s) remaining before lockout.`, 'error');
+                        showAlert(`Incorrect credentials. ${remaining} attempt(s) remaining before progressive lockout.`, 'error');
                     }
 
                     setLoading(false);
                     return;
                 }
 
-                if (user.status === 'inactive' || user.status === 'disabled') {
-                    showAlert('Your account is disabled. Contact Brgy. Admin.', 'error');
+                if (user.status === 'disabled' || user.status === 'inactive') {
+                    showAlert('Your account has been disabled/locked by Administrator.', 'error');
                     setLoading(false);
                     return;
                 }
 
                 localStorage.removeItem(attemptsKey);
                 localStorage.removeItem(lockKey);
+                localStorage.removeItem(lockLevelKey);
 
                 showAlert('Successful login.', 'success');
 
@@ -2473,7 +3040,7 @@
                 }, 500);
 
             } catch (err) {
-                showAlert('Error connecting to Supabase.', 'error');
+                showAlert('Error connecting to Supabase database.', 'error');
                 setLoading(false);
             }
         }
@@ -2483,6 +3050,11 @@
             
             const password = document.getElementById('regPassword').value.trim();
             const confirmPassword = document.getElementById('regConfirmPassword').value.trim();
+
+            if (!checkPasswordComplexity(password, 'regRules')) {
+                showRegAlert('Password does not meet required security complexity rules.', 'error');
+                return;
+            }
 
             if (password !== confirmPassword) {
                 showRegAlert('Passwords do not match.', 'error');
@@ -2526,7 +3098,6 @@
             document.getElementById('loginBtn').disabled = isLoading;
         }
 
-        // --- ROLE ROUTER & DASHBOARD INITIALIZER ---
         async function initDashboard(user) {
             currentUser = user;
             document.getElementById('loginScreen').classList.add('hidden');
@@ -2535,7 +3106,6 @@
             const isAdmin = user.role.toLowerCase() === 'admin';
 
             if (isAdmin) {
-                // Render Full-Width Desktop Web UI strictly for ADMIN
                 document.getElementById('mobileAppContainer').classList.add('hidden');
                 document.getElementById('adminDashboardApp').classList.remove('hidden');
 
@@ -2546,7 +3116,6 @@
                 
                 await fetchLogTrails();
             } else {
-                // Render Mobile Frame App UI for RESIDENT and TANOD
                 document.getElementById('adminDashboardApp').classList.add('hidden');
                 document.getElementById('mobileAppContainer').classList.remove('hidden');
                 document.getElementById('bottomNav').classList.remove('hidden');
@@ -2570,6 +3139,7 @@
                 switchTab('home');
             }
 
+            resetInactivityTimer();
             subscribeToRealtimeEvents();
             await fetchAnnouncements();
             await fetchIncidents();
@@ -3159,8 +3729,8 @@
             document.getElementById('logoutModal').classList.add('hidden');
         }
 
-        async function confirmLogout() {
-            if (currentUser) {
+        async function confirmLogout(isSyncLogout = false) {
+            if (currentUser && !isSyncLogout) {
                 try {
                     await supabase
                         .from('log_trails')
@@ -3175,6 +3745,15 @@
                     console.log('Logout audit log error ignored');
                 }
             }
+
+            if (!isSyncLogout) {
+                sessionSyncChannel.postMessage('LOGOUT');
+            }
+
+            currentUser = null;
+            clearTimeout(inactivityTimer);
+            clearTimeout(warningTimer);
+            clearInterval(countdownInterval);
 
             localStorage.removeItem('bayaniwatch_user');
             closeLogoutModal();
