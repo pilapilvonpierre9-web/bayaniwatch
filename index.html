@@ -958,16 +958,37 @@
                 <button onclick="closeAiAssistantModal()" class="text-slate-400 hover:text-navy"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- AI API Key Config Subpanel -->
-            <div class="bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-200/80 space-y-1">
-                <label class="block text-[9px] font-bold text-indigo-900 uppercase">Gemini API Key</label>
-                <div class="flex gap-2">
-                    <input type="password" id="geminiApiKeyInput" class="w-full px-2.5 py-1 border rounded-lg text-xs bg-white focus:outline-none" placeholder="Paste Gemini API Key (e.g. AIzaSy...)">
-                    <button onclick="saveGeminiApiKey()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-3 rounded-lg shadow uppercase shrink-0">
-                        Save
-                    </button>
+            <!-- AI API Key & Model Config Subpanel -->
+            <div class="bg-indigo-50/60 p-3 rounded-xl border border-indigo-200/80 space-y-2">
+                <div class="space-y-1">
+                    <label class="block text-[9px] font-bold text-indigo-900 uppercase">Gemini API Key</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="geminiApiKeyInput" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white focus:outline-none" placeholder="Paste Gemini API Key (e.g. AIzaSy...)">
+                        <button onclick="saveGeminiApiKey()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] px-3 rounded-lg shadow uppercase shrink-0 transition">
+                            Save Key
+                        </button>
+                    </div>
                 </div>
-                <p class="text-[8px] text-slate-500">Key is stored locally in browser session storage.</p>
+
+                <div class="space-y-1 pt-1.5 border-t border-indigo-200/60">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-[9px] font-bold text-indigo-900 uppercase">Select AI Model</label>
+                        <span id="activeAiModelBadge" class="text-[8px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">Auto</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="geminiModelSelect" onchange="onModelSelectChanged()" class="w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white focus:outline-none font-medium text-slate-700">
+                            <option value="auto">✨ Auto-Detect Best Working Model (Recommended)</option>
+                            <option value="gemini-1.5-flash">⚡ Gemini 1.5 Flash (Fast & Stable)</option>
+                            <option value="gemini-2.0-flash">🚀 Gemini 2.0 Flash (Next-Gen High Speed)</option>
+                            <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (In-depth Reasoning)</option>
+                            <option value="gemini-1.5-flash-8b">💡 Gemini 1.5 Flash-8B (Lightweight)</option>
+                        </select>
+                        <button onclick="refreshAvailableModelsList(false)" title="Fetch available models from Google for this key" class="bg-navy hover:bg-navy-light text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow uppercase shrink-0 flex items-center gap-1 transition">
+                            <i class="fa-solid fa-arrows-rotate"></i> <span>Fetch</span>
+                        </button>
+                    </div>
+                    <p class="text-[8px] text-slate-500">Choose a specific model or leave on Auto-Detect to automatically use the best available.</p>
+                </div>
             </div>
 
             <!-- Quick AI Scan Button -->
@@ -1681,12 +1702,100 @@
             }
         }
 
+        function updateActiveModelBadge(modelName) {
+            const badge = document.getElementById('activeAiModelBadge');
+            if (badge) {
+                const shortName = modelName.replace(/^models\//, '');
+                badge.innerText = shortName.length > 20 ? shortName.slice(0, 18) + '...' : shortName;
+                badge.className = "text-[8px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded";
+            }
+        }
+
+        function onModelSelectChanged() {
+            const select = document.getElementById('geminiModelSelect');
+            if (select) {
+                sessionStorage.setItem('bayaniwatch_selected_model', select.value);
+                sessionStorage.removeItem('bayaniwatch_working_model');
+                updateActiveModelBadge(select.value === 'auto' ? 'Auto-Detect' : select.value);
+            }
+        }
+
+        async function refreshAvailableModelsList(silent = false) {
+            const apiKey = sessionStorage.getItem('bayaniwatch_gemini_key') || document.getElementById('geminiApiKeyInput')?.value.trim();
+            const select = document.getElementById('geminiModelSelect');
+            if (!apiKey || !select) return;
+
+            try {
+                const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
+                const listData = await listRes.json();
+                if (!listData.models || !Array.isArray(listData.models)) return;
+
+                const validModels = listData.models.filter(m => {
+                    const name = (m.name || '').replace(/^models\//, '').toLowerCase();
+                    const hasGen = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
+                    const isGemini = name.startsWith('gemini');
+                    const isTts = name.includes('tts') || name.includes('audio');
+                    const isMedia = name.includes('imagen') || name.includes('image') || name.includes('embed');
+                    const isSpecial = name.includes('computer-use') || name.includes('deep-research');
+                    return hasGen && isGemini && !isTts && !isMedia && !isSpecial;
+                }).map(m => m.name.replace(/^models\//, ''));
+
+                if (validModels.length === 0) return;
+
+                validModels.sort((a, b) => {
+                    const aFlash = a.includes('flash') ? 2 : 0;
+                    const bFlash = b.includes('flash') ? 2 : 0;
+                    const aStable = !a.includes('preview') && !a.includes('exp') ? 1 : 0;
+                    const bStable = !b.includes('preview') && !b.includes('exp') ? 1 : 0;
+                    return (bFlash + bStable) - (aFlash + aStable);
+                });
+
+                const currentVal = sessionStorage.getItem('bayaniwatch_selected_model') || select.value || 'auto';
+
+                select.innerHTML = `<option value="auto">✨ Auto-Detect Best Working Model (Recommended)</option>`;
+                validModels.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = `🤖 ${m}`;
+                    select.appendChild(opt);
+                });
+
+                if (validModels.includes(currentVal) || currentVal === 'auto') {
+                    select.value = currentVal;
+                }
+
+                if (!silent) {
+                    showAppToast('MODELS UPDATED', `Discovered ${validModels.length} active text models.`);
+                }
+            } catch (err) {
+                if (!silent) {
+                    showAppToast('FETCH NOTICE', 'Could not fetch list: ' + err.message);
+                }
+            }
+        }
+
         function openAiAssistantModal() {
             document.getElementById('aiAssistantModal').classList.remove('hidden');
             const savedKey = sessionStorage.getItem('bayaniwatch_gemini_key') || '';
             const keyInput = document.getElementById('geminiApiKeyInput');
             if (keyInput) keyInput.value = savedKey;
+            
             sessionStorage.removeItem('bayaniwatch_cached_working_gemini_url');
+            const cached = sessionStorage.getItem('bayaniwatch_working_model');
+            if (cached && (cached.includes('tts') || cached.includes('audio') || cached.includes('gemma'))) {
+                sessionStorage.removeItem('bayaniwatch_working_model');
+                sessionStorage.removeItem('bayaniwatch_working_ver');
+            }
+
+            const select = document.getElementById('geminiModelSelect');
+            const savedModel = sessionStorage.getItem('bayaniwatch_selected_model') || 'auto';
+            if (select) select.value = savedModel;
+            updateActiveModelBadge(savedModel === 'auto' ? 'Auto-Detect' : savedModel);
+
+            if (savedKey) {
+                refreshAvailableModelsList(true);
+            }
         }
 
         function closeAiAssistantModal() {
@@ -1698,7 +1807,9 @@
             if (key) {
                 sessionStorage.setItem('bayaniwatch_gemini_key', key);
                 sessionStorage.removeItem('bayaniwatch_working_model');
+                sessionStorage.removeItem('bayaniwatch_working_ver');
                 showAppToast('AI KEY SAVED', 'Gemini API Key stored for this session.');
+                refreshAvailableModelsList(false);
             }
         }
 
@@ -1721,70 +1832,119 @@
                 throw new Error("Please enter and save a valid Gemini API Key first.");
             }
 
-            // Single request helper: clean URL key without duplicate headers to prevent 500/credential errors
-            async function attemptModel(modelName) {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const selectEl = document.getElementById('geminiModelSelect');
+            const userChosenModel = selectEl ? selectEl.value : (sessionStorage.getItem('bayaniwatch_selected_model') || 'auto');
 
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{ text: promptText }]
-                            }],
-                            generationConfig: {
-                                temperature: 0.7,
-                                maxOutputTokens: 1000
+            // Universal model caller: tests v1beta and v1, strictly using URL key without duplicate headers
+            async function attemptModel(modelName, preferredVer = null) {
+                const versions = preferredVer ? [preferredVer] : ['v1beta', 'v1'];
+                let lastErr = null;
+
+                for (const ver of versions) {
+                    const url = `https://generativelanguage.googleapis.com/${ver}/models/${modelName}:generateContent?key=${apiKey}`;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 14000);
+
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{ text: promptText }]
+                                }]
+                            }),
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (reply) {
+                                sessionStorage.setItem('bayaniwatch_working_model', modelName);
+                                sessionStorage.setItem('bayaniwatch_working_ver', ver);
+                                updateActiveModelBadge(modelName);
+                                return reply;
                             }
-                        }),
-                        signal: controller.signal
-                    });
-                    clearTimeout(timeoutId);
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (reply) {
-                            sessionStorage.setItem('bayaniwatch_working_model', modelName);
-                            return reply;
                         }
+                        const errData = await response.json().catch(() => ({}));
+                        lastErr = new Error(errData.error?.message || `HTTP ${response.status} (${ver}/${modelName})`);
+                    } catch (fetchErr) {
+                        clearTimeout(timeoutId);
+                        lastErr = fetchErr;
                     }
-                    const errData = await response.json().catch(() => ({}));
-                    const errMsg = errData.error?.message || `Endpoint returned status ${response.status}`;
-                    throw new Error(errMsg);
-                } catch (fetchErr) {
-                    clearTimeout(timeoutId);
-                    throw fetchErr;
+                }
+                throw lastErr || new Error(`Failed to call ${modelName}`);
+            }
+
+            // Path 1: User explicitly picked a specific model
+            if (userChosenModel && userChosenModel !== 'auto') {
+                try {
+                    return await attemptModel(userChosenModel);
+                } catch (specificErr) {
+                    console.warn(`Selected model ${userChosenModel} failed (${specificErr.message}), falling back to auto-discovery...`);
                 }
             }
 
-            // 1. Try cached working model if available
+            // Path 2: Auto-detect
+            // 2a. Try cached working model if available
             const cachedModel = sessionStorage.getItem('bayaniwatch_working_model');
-            if (cachedModel) {
+            const cachedVer = sessionStorage.getItem('bayaniwatch_working_ver');
+            if (cachedModel && !cachedModel.includes('tts') && !cachedModel.includes('audio') && !cachedModel.includes('gemma')) {
                 try {
-                    return await attemptModel(cachedModel);
+                    return await attemptModel(cachedModel, cachedVer);
                 } catch (e) {
                     sessionStorage.removeItem('bayaniwatch_working_model');
+                    sessionStorage.removeItem('bayaniwatch_working_ver');
                 }
             }
 
-            // 2. Prioritized candidate list strictly limited to authentic Gemini generation models
-            // (Strictly excludes experimental non-chat gemma/computer-use models that trigger 500s)
-            const priorityModels = [
-                'gemini-1.5-flash',
-                'gemini-1.5-flash-latest',
-                'gemini-2.0-flash',
-                'gemini-2.0-flash-exp',
-                'gemini-1.5-pro'
-            ];
+            // 2b. Discover available text models directly from Google AI Studio for this API key
+            let candidateModels = [];
+            try {
+                const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (listRes.ok) {
+                    const listData = await listRes.json();
+                    if (listData.models && Array.isArray(listData.models)) {
+                        candidateModels = listData.models
+                            .filter(m => {
+                                const name = (m.name || '').replace(/^models\//, '').toLowerCase();
+                                const hasGen = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
+                                const isGemini = name.startsWith('gemini');
+                                const isTts = name.includes('tts') || name.includes('audio');
+                                const isMedia = name.includes('imagen') || name.includes('image') || name.includes('embed');
+                                const isSpecial = name.includes('computer-use') || name.includes('deep-research');
+                                return hasGen && isGemini && !isTts && !isMedia && !isSpecial;
+                            })
+                            .map(m => m.name.replace(/^models\//, ''));
+
+                        candidateModels.sort((a, b) => {
+                            const aFlash = a.includes('flash') ? 2 : 0;
+                            const bFlash = b.includes('flash') ? 2 : 0;
+                            const aStable = !a.includes('preview') && !a.includes('exp') ? 1 : 0;
+                            const bStable = !b.includes('preview') && !b.includes('exp') ? 1 : 0;
+                            return (bFlash + bStable) - (aFlash + aStable);
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("Dynamic ListModels query skipped:", e);
+            }
+
+            if (candidateModels.length === 0) {
+                candidateModels = [
+                    'gemini-1.5-flash',
+                    'gemini-1.5-flash-latest',
+                    'gemini-2.0-flash',
+                    'gemini-1.5-pro'
+                ];
+            }
 
             let lastError = null;
-            for (const model of priorityModels) {
+            for (const model of candidateModels.slice(0, 5)) {
                 try {
                     return await attemptModel(model);
                 } catch (err) {
@@ -1792,36 +1952,7 @@
                 }
             }
 
-            // 3. Fallback discovery if Google updated model naming: strictly query gemini- models
-            try {
-                const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                if (listRes.ok) {
-                    const listData = await listRes.json();
-                    if (listData.models && Array.isArray(listData.models)) {
-                        const dynamicGeminiModels = listData.models
-                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-                            .map(m => m.name.replace(/^models\//, ''))
-                            .filter(name => 
-                                name.startsWith('gemini-') && 
-                                !name.includes('computer-use') && 
-                                !name.includes('deep-research') && 
-                                !priorityModels.includes(name)
-                            );
-
-                        for (const model of dynamicGeminiModels.slice(0, 3)) {
-                            try {
-                                return await attemptModel(model);
-                            } catch (err) {
-                                lastError = err;
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                // Ignore discovery error and use lastError
-            }
-
-            throw lastError || new Error("Failed to reach Gemini API. Please verify your API key or network connection.");
+            throw lastError || new Error("Failed to reach Gemini AI service. Please verify your API key or network connection.");
         }
 
         async function runAiBlotterAnalysis() {
