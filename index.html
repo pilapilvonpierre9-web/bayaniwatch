@@ -154,6 +154,12 @@
 </head>
 <body class="min-h-screen bg-navy-dark text-slate-800 antialiased flex flex-col items-center justify-center p-0 sm:p-4">
 
+    <!-- PERSISTENT OFFLINE MODE BANNER -->
+    <div id="networkStatusBanner" class="hidden w-full bg-amber-500 text-white text-[10px] font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm z-50 transition-all sticky top-0">
+        <i class="fa-solid fa-wifi-slash animate-pulse"></i>
+        <span>Offline Mode: No Internet. All reports and SOS alerts will be saved on this device & auto-broadcasted once reconnected.</span>
+    </div>
+
     <!-- GLOBAL IN-APP TOAST NOTIFICATION BANNER -->
     <div id="appToast" class="hidden fixed top-4 right-4 max-w-sm bg-navy text-white p-3.5 rounded-2xl shadow-2xl border border-skyblue/40 flex items-center gap-3 z-50 transition-all duration-300">
         <div id="toastIconContainer" class="w-8 h-8 rounded-full bg-skyblue/20 text-skyblue flex items-center justify-center shrink-0 text-sm">
@@ -2840,61 +2846,111 @@ ${incidentsSummary}`;
             const container = document.getElementById('announcementsList');
             const adminContainer = document.getElementById('adminAnnouncementsList');
 
-            try {
-                const { data, error } = await supabase
-                    .from('announcements')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(5);
+            if (navigator.onLine) {
+                try {
+                    const { data, error } = await supabase
+                        .from('announcements')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(5);
 
-                if (error || !data || data.length === 0) {
-                    const empty = `
-                        <div class="py-4 text-center">
-                            <i class="fa-solid fa-bullhorn text-slate-300 text-sm mb-1 block"></i>
-                            <p class="text-[10px] text-slate-400">No active barangay advisories published.</p>
-                        </div>
-                    `;
-                    if (container) container.innerHTML = empty;
-                    if (adminContainer) adminContainer.innerHTML = empty;
-                    return;
+                    if (!error && data && data.length > 0) {
+                        localStorage.setItem('bayaniwatch_cached_announcements', JSON.stringify(data));
+                        renderAnnouncementsHtml(data);
+                        return;
+                    }
+                } catch (err) {
+                    console.warn("Could not fetch remote advisories, checking cache:", err);
                 }
+            }
 
-                const html = data.map(item => `
-                    <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-200/70 hover:border-skyblue/40 transition shadow-subtle space-y-1">
-                        <div class="flex justify-between items-center gap-2">
-                            <span class="font-bold text-navy text-[11px] leading-snug">${item.title}</span>
-                            <span class="text-[8px] bg-sky-50 text-skyblue border border-skyblue/20 font-bold px-1.5 py-0.5 rounded uppercase font-mono shrink-0">${item.category || 'General'}</span>
-                        </div>
-                        <p class="text-[10px] text-slate-600 leading-relaxed font-normal">${item.content}</p>
-                        ${item.created_at ? `<span class="text-[8px] font-mono text-slate-400 block pt-0.5">${new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+            // Fallback to cached advisories
+            let cached = [];
+            try {
+                cached = JSON.parse(localStorage.getItem('bayaniwatch_cached_announcements')) || [];
+            } catch (e) { cached = []; }
+
+            if (cached.length > 0) {
+                renderAnnouncementsHtml(cached);
+            } else {
+                const empty = `
+                    <div class="py-4 text-center">
+                        <i class="fa-solid fa-bullhorn text-slate-300 text-sm mb-1 block"></i>
+                        <p class="text-[10px] text-slate-400">No active barangay advisories published.</p>
                     </div>
-                `).join('');
-
-                if (container) container.innerHTML = html;
-                if (adminContainer) adminContainer.innerHTML = html;
-
-            } catch (err) {
-                const empty = `<p class="text-[10px] text-slate-400 text-center py-2">No active advisories available.</p>`;
+                `;
                 if (container) container.innerHTML = empty;
                 if (adminContainer) adminContainer.innerHTML = empty;
             }
+        }
+
+        function renderAnnouncementsHtml(data) {
+            const container = document.getElementById('announcementsList');
+            const adminContainer = document.getElementById('adminAnnouncementsList');
+            const html = data.map(item => `
+                <div class="bg-slate-50/80 p-3 rounded-xl border border-slate-200/70 hover:border-skyblue/40 transition shadow-subtle space-y-1">
+                    <div class="flex justify-between items-center gap-2">
+                        <span class="font-bold text-navy text-[11px] leading-snug">${item.title}</span>
+                        <span class="text-[8px] bg-sky-50 text-skyblue border border-skyblue/20 font-bold px-1.5 py-0.5 rounded uppercase font-mono shrink-0">${item.category || 'General'}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-600 leading-relaxed font-normal">${item.content}</p>
+                    ${item.created_at ? `<span class="text-[8px] font-mono text-slate-400 block pt-0.5">${new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+                </div>
+            `).join('');
+
+            if (container) container.innerHTML = html;
+            if (adminContainer) adminContainer.innerHTML = html;
         }
 
         function isOnline() {
             return navigator.onLine;
         }
 
+        function updateNetworkStatusIndicator() {
+            const banner = document.getElementById('networkStatusBanner');
+            if (!banner) return;
+            const online = navigator.onLine;
+            let offlineQueue = [];
+            try {
+                offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            } catch (e) { offlineQueue = []; }
+
+            if (!online) {
+                banner.classList.remove('hidden');
+                banner.className = "w-full bg-amber-500 text-white text-[10px] font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm z-50 transition-all sticky top-0";
+                banner.innerHTML = `<i class="fa-solid fa-wifi-slash animate-pulse"></i> <span>Offline Mode: No Internet. ${offlineQueue.length > 0 ? `(${offlineQueue.length} report/SOS items staged locally)` : 'Reports & SOS alerts will be saved on this device & auto-broadcasted once reconnected.'}</span>`;
+            } else if (offlineQueue.length > 0) {
+                banner.classList.remove('hidden');
+                banner.className = "w-full bg-emerald-600 text-white text-[10px] font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm z-50 transition-all sticky top-0";
+                banner.innerHTML = `<i class="fa-solid fa-cloud-arrow-up animate-bounce"></i> <span>Connection Restored • Synchronizing ${offlineQueue.length} offline item(s)...</span>`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
         window.addEventListener('online', () => {
             showAppToast('NETWORK RESTORED', 'Back online. Syncing offline reports...');
+            updateNetworkStatusIndicator();
             syncOfflineReports();
         });
 
         window.addEventListener('offline', () => {
             showAppToast('OFFLINE MODE', 'No internet connection. Reports will be saved locally.', true);
+            updateNetworkStatusIndicator();
         });
 
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
         function base64ToBlob(base64Data, contentType) {
-            const byteCharacters = atob(base64Data.split(',')[1]);
+            const parts = base64Data.split(',');
+            const byteCharacters = atob(parts.length > 1 ? parts[1] : parts[0]);
             const byteArrays = [];
             for (let i = 0; i < byteCharacters.length; i += 512) {
                 const slice = byteCharacters.slice(i, i + 512);
@@ -2909,10 +2965,19 @@ ${incidentsSummary}`;
         }
 
         async function syncOfflineReports() {
-            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
-            if (offlineQueue.length === 0) return;
+            let offlineQueue = [];
+            try {
+                offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            } catch (e) { offlineQueue = []; }
+
+            if (offlineQueue.length === 0) {
+                updateNetworkStatusIndicator();
+                return;
+            }
 
             let remainingQueue = [];
+            let syncedCount = 0;
+            let syncedSosCount = 0;
 
             for (let report of offlineQueue) {
                 try {
@@ -2922,7 +2987,7 @@ ${incidentsSummary}`;
                         const isVideo = report.media_type === 'video';
                         const mimeType = isVideo ? 'video/webm' : 'image/jpeg';
                         const ext = isVideo ? 'webm' : 'jpg';
-                        const fileName = `incident_${Date.now()}.${ext}`;
+                        const fileName = `${report.is_sos ? 'sos' : 'incident'}_${Date.now()}.${ext}`;
 
                         const mediaBlob = base64ToBlob(report.local_media_base64, mimeType);
 
@@ -2941,32 +3006,91 @@ ${incidentsSummary}`;
                         }
                     }
 
-                    const payload = {
-                        user_id: report.user_id,
-                        title: report.title,
-                        category: report.category,
-                        description: report.description,
-                        location_address: report.location_address,
-                        latitude: report.latitude,
-                        longitude: report.longitude,
-                        is_anonymous: report.is_anonymous || false,
-                        image_url: uploadedImageUrl
-                    };
+                    if (report.is_sos) {
+                        // 1. Sync SOS incident into incidents table
+                        const { error: incError } = await supabase.from('incidents').insert([{
+                            user_id: report.user_id,
+                            title: report.title,
+                            category: report.category,
+                            description: report.description,
+                            location_address: report.location_address,
+                            latitude: report.latitude,
+                            longitude: report.longitude,
+                            status: 'Pending',
+                            image_url: uploadedImageUrl
+                        }]);
+                        if (incError) throw incError;
 
-                    const { error } = await supabase.from('incidents').insert([payload]);
+                        // 2. Sync into sos_alerts table
+                        await supabase.from('sos_alerts').insert([{
+                            user_id: report.user_id,
+                            username: report.username || 'Resident',
+                            latitude: report.latitude,
+                            longitude: report.longitude,
+                            status: 'ACTIVE',
+                            media_url: uploadedImageUrl,
+                            media_type: report.media_type
+                        }]);
 
-                    if (error) {
-                        remainingQueue.push(report);
+                        // 3. Broadcast Realtime SOS Alert to all connected Tanod & Admin
+                        if (realtimeChannel) {
+                            realtimeChannel.send({
+                                type: 'broadcast',
+                                event: 'sos_trigger',
+                                payload: {
+                                    sender: report.username || 'Resident User',
+                                    title: report.category,
+                                    description: report.description,
+                                    address: report.location_address,
+                                    lat: report.latitude,
+                                    lng: report.longitude,
+                                    media_url: uploadedImageUrl,
+                                    media_type: report.media_type,
+                                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                }
+                            });
+                        }
+
+                        if (typeof recordSecurityAuditTrail === 'function') {
+                            await recordSecurityAuditTrail(`TRIGGERED EMERGENCY SOS (Auto-Synced from Offline): ${report.category}`, 'SOS', 'CRITICAL');
+                        }
+
+                        syncedSosCount++;
+                        syncedCount++;
+                    } else {
+                        // Regular incident sync
+                        const payload = {
+                            user_id: report.user_id,
+                            title: report.title,
+                            category: report.category,
+                            description: report.description,
+                            location_address: report.location_address,
+                            latitude: report.latitude,
+                            longitude: report.longitude,
+                            is_anonymous: report.is_anonymous || false,
+                            image_url: uploadedImageUrl
+                        };
+
+                        const { error } = await supabase.from('incidents').insert([payload]);
+                        if (error) throw error;
+                        syncedCount++;
                     }
+
                 } catch (err) {
+                    console.error("Failed to sync item:", err);
                     remainingQueue.push(report);
                 }
             }
 
             localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(remainingQueue));
+            updateNetworkStatusIndicator();
 
-            if (remainingQueue.length === 0) {
-                showAppToast('SYNC COMPLETE', 'Offline reports with photos/videos successfully synced!');
+            if (syncedCount > 0) {
+                if (syncedSosCount > 0) {
+                    showAppToast('🚨 SOS BROADCASTED', `${syncedSosCount} offline Emergency SOS alert(s) synchronized to cloud!`, true);
+                } else {
+                    showAppToast('SYNC COMPLETE', `${syncedCount} offline report(s) successfully synced!`);
+                }
                 if (typeof fetchIncidents === 'function') {
                     await fetchIncidents();
                 }
@@ -2974,8 +3098,12 @@ ${incidentsSummary}`;
         }
 
         setInterval(async () => {
+            updateNetworkStatusIndicator();
             if (navigator.onLine) {
-                let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+                let offlineQueue = [];
+                try {
+                    offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+                } catch (e) { offlineQueue = []; }
                 if (offlineQueue.length > 0) {
                     await syncOfflineReports();
                 }
@@ -3562,11 +3690,91 @@ ${incidentsSummary}`;
             }, 100);
         }
 
+        async function stageSosLocally(category, details, lat, lng, mediaBlob, mediaType) {
+            let base64Media = null;
+            if (mediaBlob) {
+                try {
+                    base64Media = await blobToBase64(mediaBlob);
+                } catch (e) {
+                    console.error("Failed to convert SOS media blob to Base64:", e);
+                }
+            }
+
+            const senderName = currentUser ? (currentUser.full_name || currentUser.username) : 'Resident User';
+            const sosAddress = `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`;
+
+            const sosPayload = {
+                sender: senderName,
+                title: category,
+                description: details,
+                address: sosAddress,
+                lat: lat,
+                lng: lng,
+                media_url: base64Media,
+                media_type: mediaType || 'photo',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                is_sos: true,
+                staged_offline: true,
+                reported_at: new Date().toISOString()
+            };
+
+            closeSosModal();
+            const detailsInput = document.getElementById('sosModalDetails');
+            if (detailsInput) detailsInput.value = '';
+
+            // 1. Stage in offline queue for automatic cloud sync
+            let offlineQueue = [];
+            try {
+                offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            } catch (e) { offlineQueue = []; }
+
+            offlineQueue.unshift({
+                is_sos: true,
+                user_id: currentUser ? currentUser.user_id : null,
+                username: senderName,
+                category: category,
+                title: `🚨 EMERGENCY SOS: ${category}`,
+                description: details,
+                location_address: sosAddress,
+                latitude: lat,
+                longitude: lng,
+                local_media_base64: base64Media,
+                media_type: mediaType || 'photo',
+                localId: 'sos_' + Date.now(),
+                reported_at: new Date().toISOString()
+            });
+            localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
+
+            // 2. Save active SOS locally on device
+            localStorage.setItem('bayaniwatch_sos_active', JSON.stringify(sosPayload));
+
+            // 3. Play alarm audio if available
+            startSirenAlarm();
+
+            // 4. Display local SOS banner on screen if officer
+            displayRealtimeSosBanner(sosPayload);
+
+            // 5. Instantly show in local feed & map as Pending Offline SOS
+            if (typeof refreshIncidentsDisplayWithOffline === 'function') {
+                await refreshIncidentsDisplayWithOffline();
+            }
+
+            updateNetworkStatusIndicator();
+
+            showAppToast('🚨 OFFLINE SOS STAGED', 'No internet connection. SOS saved locally on this device and will broadcast automatically once online!', true);
+        }
+
         async function confirmAndBroadcastSos() {
             const category = document.getElementById('sosModalCategory').value;
             const details = document.getElementById('sosModalDetails').value.trim() || "Resident requires immediate emergency assistance!";
             const lat = parseFloat(document.getElementById('sosLatitude').value) || 10.9613;
             const lng = parseFloat(document.getElementById('sosLongitude').value) || 124.6483;
+
+            // Upfront offline detection: if no internet, immediately stage locally
+            if (!navigator.onLine) {
+                await stageSosLocally(category, details, lat, lng, sosMediaBlob, sosMediaType);
+                return;
+            }
 
             let uploadedMediaUrl = null;
 
@@ -3592,7 +3800,7 @@ ${incidentsSummary}`;
                 }
 
                 const sosPayload = {
-                    sender: currentUser ? currentUser.username : 'Resident User',
+                    sender: currentUser ? (currentUser.full_name || currentUser.username) : 'Resident User',
                     title: category,
                     description: details,
                     address: `Purok near Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}, Brgy. Danhug`,
@@ -3637,7 +3845,7 @@ ${incidentsSummary}`;
                 await supabase.from('sos_alerts').insert([
                     {
                         user_id: currentUser ? currentUser.user_id : null,
-                        username: currentUser ? currentUser.username : 'Resident',
+                        username: currentUser ? (currentUser.full_name || currentUser.username) : 'Resident',
                         latitude: lat,
                         longitude: lng,
                         status: 'ACTIVE',
@@ -3650,9 +3858,13 @@ ${incidentsSummary}`;
 
                 displayRealtimeSosBanner(sosPayload);
                 showAppToast('🚨 EMERGENCY SOS BROADCASTED', 'Panic alert broadcasted via Realtime cloud.', true);
+                if (typeof fetchIncidents === 'function') {
+                    await fetchIncidents();
+                }
 
             } catch (err) {
-                showAppToast('SOS ERROR', 'Failed to broadcast alert to cloud server.', true);
+                console.warn("Live cloud broadcast failed. Staging SOS locally:", err);
+                await stageSosLocally(category, details, lat, lng, sosMediaBlob, sosMediaType);
             }
         }
 
@@ -4385,61 +4597,97 @@ ${incidentsSummary}`;
             if (list && (!globalIncidentsData || globalIncidentsData.length === 0)) list.innerHTML = skeletonHtml;
             if (adminList && (!globalIncidentsData || globalIncidentsData.length === 0)) adminList.innerHTML = skeletonHtml;
 
-            try {
-                const { data, error } = await supabase
-                    .from('incidents')
-                    .select(`
-                        incident_id, title, category, description,
-                        latitude, longitude, location_address, status, reported_at, image_url, is_anonymous, resolution_notes, resolution_image_url,
-                        users ( full_name )
-                    `)
-                    .order('reported_at', { ascending: false });
+            if (navigator.onLine) {
+                try {
+                    const { data, error } = await supabase
+                        .from('incidents')
+                        .select(`
+                            incident_id, title, category, description,
+                            latitude, longitude, location_address, status, reported_at, image_url, is_anonymous, resolution_notes, resolution_image_url,
+                            users ( full_name )
+                        `)
+                        .order('reported_at', { ascending: false });
 
-                if (error) throw error;
+                    if (!error && data) {
+                        localStorage.setItem('bayaniwatch_cached_incidents', JSON.stringify(data));
+                        globalIncidentsData = data.map(inc => ({
+                            ...inc,
+                            reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
+                        }));
+                    }
+                } catch (err) {
+                    console.warn("Could not fetch remote incidents, loading from offline cache:", err);
+                }
+            }
 
-                globalIncidentsData = data.map(inc => ({
+            // Fallback to cache if no remote data loaded
+            if (!globalIncidentsData || globalIncidentsData.length === 0) {
+                let cached = [];
+                try {
+                    cached = JSON.parse(localStorage.getItem('bayaniwatch_cached_incidents')) || [];
+                } catch (e) { cached = []; }
+                
+                globalIncidentsData = cached.map(inc => ({
                     ...inc,
                     reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
                 }));
-
-                const counterEl = document.getElementById('incidentCounter');
-                if (counterEl) counterEl.innerText = globalIncidentsData.length;
-
-                const statTotalEl = document.getElementById('statTotalIncidents');
-                if (statTotalEl) statTotalEl.innerText = globalIncidentsData.length;
-
-                const pending = globalIncidentsData.filter(i => i.status === 'Pending').length;
-                const progress = globalIncidentsData.filter(i => i.status === 'In Progress').length;
-                const resolved = globalIncidentsData.filter(i => i.status === 'Resolved').length;
-
-                const pendEl = document.getElementById('adminPendingCount');
-                if (pendEl) pendEl.innerText = pending;
-                const progEl = document.getElementById('adminProgressCount');
-                if (progEl) progEl.innerText = progress;
-                const resEl = document.getElementById('adminResolvedCount');
-                if (resEl) resEl.innerText = resolved;
-
-                const pendElDesktop = document.getElementById('adminPendingCountDesktop');
-                if (pendElDesktop) pendElDesktop.innerText = pending;
-                const progElDesktop = document.getElementById('adminProgressCountDesktop');
-                if (progElDesktop) progElDesktop.innerText = progress;
-                const resElDesktop = document.getElementById('adminResolvedCountDesktop');
-                if (resElDesktop) resElDesktop.innerText = resolved;
-
-                renderIncidents(globalIncidentsData);
-                initLeafletMap();
-
-            } catch (err) {
-                const errHtml = `
-                    <div class="p-6 text-center bg-rose-50/50 border border-rose-200 rounded-2xl">
-                        <i class="fa-solid fa-triangle-exclamation text-alertred text-lg mb-1.5"></i>
-                        <p class="text-xs font-bold text-navy">Unable to load incident feed</p>
-                        <p class="text-[10px] text-slate-500 mt-0.5">${err.message || 'Check database connectivity.'}</p>
-                    </div>
-                `;
-                if (list) list.innerHTML = errHtml;
-                if (adminList) adminList.innerHTML = errHtml;
             }
+
+            await refreshIncidentsDisplayWithOffline();
+        }
+
+        async function refreshIncidentsDisplayWithOffline() {
+            let offlineQueue = [];
+            try {
+                offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            } catch (e) { offlineQueue = []; }
+
+            const stagedItems = offlineQueue.map(q => ({
+                incident_id: q.localId || ('offline_' + Date.now()),
+                title: q.title,
+                category: q.category,
+                description: q.description,
+                location_address: q.location_address,
+                latitude: q.latitude,
+                longitude: q.longitude,
+                status: 'Pending',
+                reported_at: q.reported_at || new Date().toISOString(),
+                image_url: q.local_media_base64 || null,
+                media_type: q.media_type,
+                is_offline_staged: true,
+                is_sos: !!q.is_sos,
+                reported_by: q.is_anonymous ? 'Anonymous Resident' : (currentUser ? (currentUser.full_name || currentUser.username) : 'Local Resident')
+            }));
+
+            // Merge staged at top, avoiding duplicates
+            const allItems = [...stagedItems, ...(globalIncidentsData || []).filter(item => !stagedItems.some(s => s.incident_id === item.incident_id))];
+
+            const counterEl = document.getElementById('incidentCounter');
+            if (counterEl) counterEl.innerText = allItems.length;
+
+            const statTotalEl = document.getElementById('statTotalIncidents');
+            if (statTotalEl) statTotalEl.innerText = allItems.length;
+
+            const pending = allItems.filter(i => i.status === 'Pending').length;
+            const progress = allItems.filter(i => i.status === 'In Progress').length;
+            const resolved = allItems.filter(i => i.status === 'Resolved').length;
+
+            const pendEl = document.getElementById('adminPendingCount');
+            if (pendEl) pendEl.innerText = pending;
+            const progEl = document.getElementById('adminProgressCount');
+            if (progEl) progEl.innerText = progress;
+            const resEl = document.getElementById('adminResolvedCount');
+            if (resEl) resEl.innerText = resolved;
+
+            const pendElDesktop = document.getElementById('adminPendingCountDesktop');
+            if (pendElDesktop) pendElDesktop.innerText = pending;
+            const progElDesktop = document.getElementById('adminProgressCountDesktop');
+            if (progElDesktop) progElDesktop.innerText = progress;
+            const resElDesktop = document.getElementById('adminResolvedCountDesktop');
+            if (resElDesktop) resElDesktop.innerText = resolved;
+
+            renderIncidents(allItems);
+            initLeafletMap();
         }
 
         function renderIncidents(items) {
@@ -4476,6 +4724,20 @@ ${incidentsSummary}`;
                     statusDotClass = 'bg-safetygreen';
                 }
 
+                const offlineBadge = item.is_offline_staged ? `
+                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs animate-pulse">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Offline Staged</span>
+                    </span>
+                ` : '';
+
+                const sosBadge = item.is_sos ? `
+                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-alertred text-white shadow-xs animate-pulse">
+                        <i class="fa-solid fa-bell"></i>
+                        <span>SOS Alert</span>
+                    </span>
+                ` : '';
+
                 return `
                 <div class="group bg-white p-4 rounded-2xl border border-slate-200/80 shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col gap-2 relative overflow-hidden">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -4486,6 +4748,8 @@ ${incidentsSummary}`;
                             <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-sky-50 text-skyblue rounded-md border border-skyblue/20">
                                 ${item.category}
                             </span>
+                            ${offlineBadge}
+                            ${sosBadge}
                             ${item.is_anonymous ? `
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-md border border-slate-200/60 flex items-center gap-1">
                                     <i class="fa-solid fa-user-secret text-[9px]"></i> Anon
@@ -4518,7 +4782,7 @@ ${incidentsSummary}`;
                     
                     ${item.image_url ? `
                         <div class="mt-1 rounded-xl overflow-hidden border border-slate-200/80 bg-slate-950 relative shadow-inner">
-                            ${item.image_url.endsWith('.webm') || item.image_url.includes('webm') ? `
+                            ${item.image_url.endsWith('.webm') || item.image_url.includes('webm') || (item.media_type === 'video') ? `
                                 <video src="${item.image_url}" controls playsinline class="w-full h-36 object-cover"></video>
                             ` : `
                                 <img src="${item.image_url}" class="w-full h-32 object-cover cursor-pointer hover:opacity-95 transition" onclick="window.open('${item.image_url}', '_blank')">
@@ -4548,12 +4812,12 @@ ${incidentsSummary}`;
 
                     ${isAdminOrTanod ? `
                         <div class="mt-1 pt-2 border-t border-slate-100 flex gap-2">
-                            ${item.status !== 'In Progress' && item.status !== 'Resolved' ? `
+                            ${item.status !== 'In Progress' && item.status !== 'Resolved' && !item.is_offline_staged ? `
                                 <button onclick="updateStatus(${item.incident_id}, 'In Progress')" class="btn-tactile flex-1 bg-sky-50 text-skyblue hover:bg-skyblue hover:text-white border border-skyblue/20 py-1.5 rounded-xl text-[10px] font-bold transition flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-person-running"></i> Deploy
                                 </button>
                             ` : ''}
-                            ${item.status !== 'Resolved' ? `
+                            ${item.status !== 'Resolved' && !item.is_offline_staged ? `
                                 <button onclick="openResolveModal(${item.incident_id})" class="btn-tactile flex-1 bg-emerald-50 text-safetygreen hover:bg-safetygreen hover:text-white border border-emerald-300 py-1.5 rounded-xl text-[10px] font-bold transition flex items-center justify-center gap-1">
                                     <i class="fa-solid fa-check-circle"></i> Resolve
                                 </button>
@@ -4839,7 +5103,11 @@ ${incidentsSummary}`;
                 reported_at: new Date().toISOString()
             };
 
-            let offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            let offlineQueue = [];
+            try {
+                offlineQueue = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue')) || [];
+            } catch (e) { offlineQueue = []; }
+
             offlineQueue.push(offlinePayload);
             localStorage.setItem('bayaniwatch_offline_queue', JSON.stringify(offlineQueue));
 
@@ -4847,9 +5115,13 @@ ${incidentsSummary}`;
             capturedBlobData = null;
             incidentMediaBlob = null;
             closeCreateIncidentModal();
-            document.getElementById('createIncidentForm').reset();
+            const form = document.getElementById('createIncidentForm');
+            if (form) form.reset();
 
-            showAppToast('SAVED OFFLINE', 'Report staged locally with media and will auto-sync later.', true);
+            await refreshIncidentsDisplayWithOffline();
+            updateNetworkStatusIndicator();
+
+            showAppToast('SAVED OFFLINE', 'Report saved locally on your device! It will automatically sync as soon as you reconnect.', true);
         }
 
         function populateMarkersToGroup(group) {
@@ -5067,6 +5339,8 @@ ${incidentsSummary}`;
         window.onload = async () => {
             history.pushState(null, document.title, location.href);
 
+            updateNetworkStatusIndicator();
+
             if (typeof syncOfflineReports === 'function') {
                 await syncOfflineReports();
             }
@@ -5077,6 +5351,13 @@ ${incidentsSummary}`;
                 await initDashboard(user);
             } else {
                 showLoginScreen();
+            }
+
+            // Register Service Worker for offline PWA capabilities
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW registration note:', err);
+                });
             }
         };
     </script>
