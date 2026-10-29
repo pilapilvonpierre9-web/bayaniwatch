@@ -88,6 +88,34 @@
       const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkanlsd3RrdWtxeGR2cnJmYXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk2NDIsImV4cCI6MjEwNjYzNTY0Mn0.vYw5AXyAJJBUZLQQuaaktTRad8EhtTl6Qdc6t5RuF24';
 
       window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // Cloudflare Edge CDN Caching Proxy for Supabase Storage (prevents 5GB Egress quota limit)
+      const CLOUDFLARE_CDN_WORKER = 'https://supabase-storage-cache.pilapilvonpierre9.workers.dev';
+      window.toCdnUrl = function(url) {
+        if (!url || typeof url !== 'string') return url;
+        return url
+          .replace('https://ydjylwtkukqxdvrrfaul.supabase.co', CLOUDFLARE_CDN_WORKER)
+          .replace('https://spdnfdvklbsbunzdxzub.supabase.co', CLOUDFLARE_CDN_WORKER);
+      };
+
+      // Safe Media Viewer (handles both Base64 offline and CDN URLs without about:blank errors)
+      window.viewMediaFull = function(mediaUrl) {
+        if (!mediaUrl) return;
+        if (mediaUrl.indexOf('data:') === 0) {
+          const win = window.open('');
+          if (win) {
+            const isVid = mediaUrl.indexOf('data:video') === 0;
+            const el = isVid ? document.createElement('video') : document.createElement('img');
+            el.src = mediaUrl;
+            el.style.cssText = 'max-width:95vw;max-height:95vh;border-radius:12px;object-fit:contain;';
+            if (isVid) { el.controls = true; el.autoplay = true; }
+            win.document.body.style.cssText = 'margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;height:100vh;';
+            win.document.body.appendChild(el);
+          }
+        } else {
+          window.open(window.toCdnUrl(mediaUrl), '_blank');
+        }
+      };
     </script>
     
     <style>
@@ -2770,7 +2798,7 @@ ${incidentsSummary}`;
                         const { data: urlData } = supabase.storage
                             .from('incident-photos')
                             .getPublicUrl(fileName);
-                        resolutionImgUrl = urlData.publicUrl;
+                        resolutionImgUrl = window.toCdnUrl(urlData.publicUrl);
                     }
                 }
 
@@ -2919,10 +2947,6 @@ ${incidentsSummary}`;
                 banner.classList.remove('hidden');
                 banner.className = "w-full bg-amber-500 text-white text-[10px] font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm z-50 transition-all sticky top-0";
                 banner.innerHTML = `<i class="fa-solid fa-wifi-slash animate-pulse"></i> <span>Offline Mode: No Internet. ${offlineQueue.length > 0 ? `(${offlineQueue.length} report/SOS items staged locally)` : 'Reports & SOS alerts will be saved on this device & auto-broadcasted once reconnected.'}</span>`;
-            } else if (offlineQueue.length > 0) {
-                banner.classList.remove('hidden');
-                banner.className = "w-full bg-emerald-600 text-white text-[10px] font-bold py-1.5 px-3 text-center flex items-center justify-center gap-2 shadow-sm z-50 transition-all sticky top-0";
-                banner.innerHTML = `<i class="fa-solid fa-cloud-arrow-up animate-bounce"></i> <span>Connection Restored • Synchronizing ${offlineQueue.length} offline item(s)...</span>`;
             } else {
                 banner.classList.add('hidden');
             }
@@ -2998,12 +3022,15 @@ ${incidentsSummary}`;
                                 upsert: true
                             });
 
-                        if (!uploadError) {
-                            const { data: urlData } = supabase.storage
-                                .from('incident-photos')
-                                .getPublicUrl(fileName);
-                            uploadedImageUrl = urlData.publicUrl;
+                        if (uploadError) {
+                            console.error("Storage upload failed during sync:", uploadError);
+                            throw uploadError; // Don't save record with missing image if upload failed
                         }
+
+                        const { data: urlData } = supabase.storage
+                            .from('incident-photos')
+                            .getPublicUrl(fileName);
+                        uploadedImageUrl = window.toCdnUrl(urlData.publicUrl);
                     }
 
                     if (report.is_sos) {
@@ -3795,7 +3822,7 @@ ${incidentsSummary}`;
                         const { data: urlData } = supabase.storage
                             .from('incident-photos')
                             .getPublicUrl(fileName);
-                        uploadedMediaUrl = urlData.publicUrl;
+                        uploadedMediaUrl = window.toCdnUrl(urlData.publicUrl);
                     }
                 }
 
@@ -3897,10 +3924,11 @@ ${incidentsSummary}`;
 
             let mediaHtml = '';
             if (sosData.media_url) {
+                const cdnMediaUrl = window.toCdnUrl(sosData.media_url);
                 if (sosData.media_type === 'video') {
-                    mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-24 object-cover rounded mt-1"></video>`;
+                    mediaHtml = `<video src="${cdnMediaUrl}" controls class="w-full h-24 object-cover rounded mt-1"></video>`;
                 } else {
-                    mediaHtml = `<img src="${sosData.media_url}" class="w-full h-24 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${sosData.media_url}', '_blank')">`;
+                    mediaHtml = `<img src="${cdnMediaUrl}" class="w-full h-24 object-cover rounded mt-1 cursor-pointer" onclick="window.open('${cdnMediaUrl}', '_blank')">`;
                 }
             }
 
@@ -4612,6 +4640,8 @@ ${incidentsSummary}`;
                         localStorage.setItem('bayaniwatch_cached_incidents', JSON.stringify(data));
                         globalIncidentsData = data.map(inc => ({
                             ...inc,
+                            image_url: window.toCdnUrl(inc.image_url),
+                            resolution_image_url: window.toCdnUrl(inc.resolution_image_url),
                             reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
                         }));
                     }
@@ -4629,6 +4659,8 @@ ${incidentsSummary}`;
                 
                 globalIncidentsData = cached.map(inc => ({
                     ...inc,
+                    image_url: window.toCdnUrl(inc.image_url),
+                    resolution_image_url: window.toCdnUrl(inc.resolution_image_url),
                     reported_by: inc.is_anonymous ? 'Anonymous Resident' : (inc.users ? inc.users.full_name : 'Local Resident')
                 }));
             }
@@ -4783,9 +4815,9 @@ ${incidentsSummary}`;
                     ${item.image_url ? `
                         <div class="mt-1 rounded-xl overflow-hidden border border-slate-200/80 bg-slate-950 relative shadow-inner">
                             ${item.image_url.endsWith('.webm') || item.image_url.includes('webm') || (item.media_type === 'video') ? `
-                                <video src="${item.image_url}" controls playsinline class="w-full h-36 object-cover"></video>
+                                <video src="${window.toCdnUrl(item.image_url)}" controls playsinline class="w-full h-36 object-cover"></video>
                             ` : `
-                                <img src="${item.image_url}" class="w-full h-32 object-cover cursor-pointer hover:opacity-95 transition" onclick="window.open('${item.image_url}', '_blank')">
+                                <img src="${window.toCdnUrl(item.image_url)}" class="w-full h-32 object-cover cursor-pointer hover:opacity-95 transition" onclick="window.viewMediaFull('${item.image_url.replace(/'/g, "\\'")}')">
                             `}
                         </div>
                     ` : ''}
@@ -4796,7 +4828,7 @@ ${incidentsSummary}`;
                                 <i class="fa-solid fa-circle-check"></i> Resolution Summary
                             </span>
                             <p class="text-slate-700 leading-relaxed mt-1 font-medium">${item.resolution_notes}</p>
-                            ${item.resolution_image_url ? `<img src="${item.resolution_image_url}" class="w-full h-24 object-cover rounded-lg mt-1.5 cursor-pointer border border-emerald-200" onclick="window.open('${item.resolution_image_url}', '_blank')">` : ''}
+                            ${item.resolution_image_url ? `<img src="${window.toCdnUrl(item.resolution_image_url)}" class="w-full h-24 object-cover rounded-lg mt-1.5 cursor-pointer border border-emerald-200" onclick="window.viewMediaFull('${item.resolution_image_url.replace(/'/g, "\\'")}')">` : ''}
                         </div>
                     ` : ''}
 
@@ -5038,7 +5070,7 @@ ${incidentsSummary}`;
                         .from('incident-photos')
                         .getPublicUrl(fileName);
 
-                    uploadedImageUrl = urlData.publicUrl;
+                    uploadedImageUrl = window.toCdnUrl(urlData.publicUrl);
                 }
 
                 const { error } = await supabase
@@ -5069,6 +5101,8 @@ ${incidentsSummary}`;
                 showAppToast('REPORT FILED', 'Incident report submitted successfully!');
 
             } catch (err) {
+                console.error("Online incident submission failed, falling back to local storage:", err);
+                showAppToast('OFFLINE FALLBACK', 'Network or upload error: ' + (err.message || 'Saving offline...'), true);
                 await stageIncidentLocally(title, category, description, address, lat, lng, mediaFile, isAnonymous);
             } finally {
                 submitBtn.disabled = false;
@@ -5146,7 +5180,7 @@ ${incidentsSummary}`;
                             </span>
                             <h4 class="text-xs font-bold text-navy leading-snug">${inc.title}</h4>
                             <p class="text-[10px] text-slate-600 mt-1"><strong>Cat:</strong> ${inc.category}</p>
-                            ${inc.image_url ? `<img src="${inc.image_url}" class="w-full h-20 object-cover rounded mt-1">` : ''}
+                            ${inc.image_url ? `<img src="${window.toCdnUrl(inc.image_url)}" class="w-full h-20 object-cover rounded mt-1">` : ''}
                             <p class="text-[9px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-skyblue"></i> ${inc.location_address || 'Brgy. Danhug'}</p>
                         </div>
                     `);
@@ -5165,10 +5199,11 @@ ${incidentsSummary}`;
 
                         let mediaHtml = '';
                         if (sosData.media_url) {
+                            const cdnMedia = window.toCdnUrl(sosData.media_url);
                             if (sosData.media_type === 'video') {
-                                mediaHtml = `<video src="${sosData.media_url}" controls class="w-full h-20 object-cover rounded mt-1"></video>`;
+                                mediaHtml = `<video src="${cdnMedia}" controls class="w-full h-20 object-cover rounded mt-1"></video>`;
                             } else {
-                                mediaHtml = `<img src="${sosData.media_url}" class="w-full h-20 object-cover rounded mt-1">`;
+                                mediaHtml = `<img src="${cdnMedia}" class="w-full h-20 object-cover rounded mt-1">`;
                             }
                         }
 
@@ -5339,11 +5374,14 @@ ${incidentsSummary}`;
         window.onload = async () => {
             history.pushState(null, document.title, location.href);
 
-            updateNetworkStatusIndicator();
-
-            if (typeof syncOfflineReports === 'function') {
-                await syncOfflineReports();
+            // Clean stale offline items if reconnected
+            if (navigator.onLine) {
+                const q = JSON.parse(localStorage.getItem('bayaniwatch_offline_queue') || '[]');
+                if (q.length > 0 && typeof syncOfflineReports === 'function') {
+                    await syncOfflineReports();
+                }
             }
+            updateNetworkStatusIndicator();
 
             const saved = localStorage.getItem('bayaniwatch_user');
             if (saved) {
