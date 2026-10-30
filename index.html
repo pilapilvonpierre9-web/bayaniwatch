@@ -82,6 +82,36 @@
     <!-- Supabase JS Library CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- Mermaid.js for SIA Interactive Architecture Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          primaryColor: '#e0f2fe',
+          primaryTextColor: '#0f172a',
+          primaryBorderColor: '#0284c7',
+          lineColor: '#334155',
+          secondaryColor: '#f1f5f9',
+          tertiaryColor: '#ffffff',
+          fontSize: '15px',
+          fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif'
+        },
+        flowchart: {
+          htmlLabels: true,
+          useMaxWidth: false,
+          curve: 'linear', nodeSpacing: 50, rankSpacing: 70
+        },
+        sequence: {
+          useMaxWidth: false,
+          actorFontSize: '14px',
+          messageFontSize: '13px'
+        },
+        securityLevel: 'loose'
+      });
+    </script>
+
     <!-- Supabase Client Initialization -->
     <script>
       const SUPABASE_URL = 'https://ydjylwtkukqxdvrrfaul.supabase.co';
@@ -119,6 +149,28 @@
     </script>
     
     <style>
+      .sia-panzoom-canvas {
+        min-width: 100%;
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sia-panzoom-canvas svg {
+        max-width: none !important;
+        height: auto !important;
+        min-width: 900px;
+        transform-origin: center center;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.04));
+      }
+
+      .sia-panzoom-container {
+        background-color: #f8fafc;
+        background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+        background-size: 20px 20px;
+      }
+
       .leaflet-control-attribution,
       .leaflet-control-attribution a {
         pointer-events: none !important;
@@ -218,6 +270,12 @@
             </div>
 
             <div class="flex items-center gap-2.5">
+                <!-- SIA Architecture Diagrams Center -->
+                <button onclick="openSiaModal()" class="btn-tactile bg-sky-600/90 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 border border-sky-400/40">
+                    <i class="fa-solid fa-sitemap text-sky-200"></i>
+                    <span class="hidden sm:inline">SIA Architecture</span>
+                </button>
+
                 <!-- Integrated AI Assistant Launcher -->
                 <button onclick="openAiAssistantModal()" class="btn-tactile bg-indigo-600/90 hover:bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-1.5 border border-indigo-400/40">
                     <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
@@ -794,6 +852,11 @@
                         <button onclick="openCreateAdvisoryModal()" class="btn-tactile w-full mt-2 bg-skyblue hover:bg-skyblue-hover text-white font-bold py-2.5 rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-bullhorn text-[11px]"></i> Post New Barangay Advisory
                         </button>
+
+                        <!-- SIA Architecture Modal Launcher for Mobile Admin View -->
+                        <button onclick="openSiaModal()" class="btn-tactile w-full mt-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5 border border-slate-700">
+                            <i class="fa-solid fa-sitemap text-sky-400"></i> View SIA System Architecture
+                        </button>
                     </div>
 
                     <!-- System Audit Log Trails -->
@@ -1048,6 +1111,434 @@
                 </h4>
                 <div id="aiOutputDisplay" class="text-xs text-slate-700 leading-relaxed max-h-48 overflow-y-auto custom-scrollbar p-2 bg-white rounded-lg border border-slate-100 min-h-[80px]">
                     <p class="text-slate-400 text-center py-4">Click "Run Automated Blotter Risk Scan" above or ask a question.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYSTEM INTEGRATION AND ARCHITECTURE (SIA) FINAL PROJECT DIAGRAMS MODAL -->
+    <div id="siaModal" class="hidden fixed inset-0 bg-navy/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-7xl max-h-[96vh] flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-navy to-navy-950 p-4 sm:p-5 text-white flex justify-between items-center shrink-0 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg border border-sky-400/30">
+                        <i class="fa-solid fa-sitemap"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-extrabold tracking-tight">SIA Final Project Architecture & Diagrams</h3>
+                        <p class="text-[11px] text-slate-400">BayaniWatch • System Integration and Architecture 1 & IAS 1</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadSiaDocumentation()" class="text-xs bg-sky-500 hover:bg-sky-400 text-white px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm border border-sky-300/30">
+                        <i class="fa-solid fa-file-arrow-down"></i> <span class="hidden sm:inline">Download Spec</span>
+                    </button>
+                    <button onclick="closeSiaModal()" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Navigation Bar -->
+            <div class="bg-slate-100 p-2 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto hide-scrollbar shrink-0 text-xs font-bold">
+                <button onclick="switchSiaTab('usecase')" id="siaTabBtn-usecase" class="px-3 py-2 rounded-xl bg-white text-navy shadow-xs border border-slate-200 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-users"></i> 1. Use Case Diagram
+                </button>
+                <button onclick="switchSiaTab('swimlane')" id="siaTabBtn-swimlane" class="px-3 py-2 rounded-xl text-slate-600 hover:bg-white/60 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-bars-staggered"></i> 2. Swimlane Flow
+                </button>
+                <button onclick="switchSiaTab('erd')" id="siaTabBtn-erd" class="px-3 py-2 rounded-xl text-slate-600 hover:bg-white/60 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-database"></i> 3. Entity Relationship (ERD)
+                </button>
+                <button onclick="switchSiaTab('flowchart')" id="siaTabBtn-flowchart" class="px-3 py-2 rounded-xl text-slate-600 hover:bg-white/60 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-network-wired"></i> 4. System Flowchart
+                </button>
+                <button onclick="switchSiaTab('network')" id="siaTabBtn-network" class="px-3 py-2 rounded-xl text-slate-600 hover:bg-white/60 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud"></i> 5. Network Flow
+                </button>
+            </div>
+
+            <!-- Diagrams Viewport -->
+            <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50 space-y-4">
+                <!-- 1. Use Case Pane -->
+                <div id="siaPane-usecase" class="space-y-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wider">UML Use Case Diagram (System Actors & Functional Boundaries)</h4>
+                            <p class="text-[11px] text-slate-500">Maps Resident, Tanod Responder, Barangay Admin, Cloudflare Edge, and Google Gemini AI roles.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg font-medium border border-slate-200 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>Scroll to Zoom • Drag to Pan</span>
+                            <button onclick="zoomSia('usecase', 1.2)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button onclick="zoomSia('usecase', 0.8)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <button onclick="resetZoomSia('usecase')" class="px-2 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold flex items-center justify-center text-slate-700 shadow-xs">Reset</button>
+                            <span class="text-[10px] bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full font-bold border border-sky-200">ISO/IEC 19505 UML</span>
+                        </div>
+                    </div>
+                    <div id="siaWrapper-usecase" class="sia-panzoom-container bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[650px] relative cursor-grab select-none">
+                        <div id="siaCanvas-usecase" class="sia-panzoom-canvas w-full h-full flex items-center justify-center transition-transform duration-75">
+                            <div class="mermaid text-center" id="mermaid-usecase">
+flowchart LR
+    subgraph ResidentPortal ["1. Resident Portal (PWA)"]
+        direction TB
+        RES["Resident / Reporter"]
+        UC1(["Register & OTP Verify"])
+        UC2(["Session Authentication"])
+        UC3(["Submit Incident Blotter"])
+        UC4(["Emergency SOS Telemetry"])
+        UC5(["Browse GIS Incident Map"])
+        UC14(["Offline Local Staging"])
+
+        RES --> UC1
+        RES --> UC2
+        RES --> UC3
+        RES --> UC4
+        RES --> UC5
+        RES --> UC14
+    end
+
+    subgraph TanodPortal ["2. Tanod Patrol & Dispatch"]
+        direction TB
+        TAN["Tanod Responder"]
+        UC6(["Receive Siren & SOS Alert"])
+        UC7(["Update Status: In-Progress"])
+
+        TAN --> UC6
+        TAN --> UC7
+    end
+
+    subgraph AdminPortal ["3. Barangay Command Desk"]
+        direction TB
+        ADM["Barangay Administrator"]
+        UC8(["Photo Proof Case Resolution"])
+        UC9(["Broadcast Community Advisory"])
+        UC10(["RBAC User Governance"])
+        UC11(["Security Audit Logs"])
+        UC12(["Gemini AI Risk Assessment"])
+        UC13(["Encrypted Database Backup"])
+
+        ADM --> UC8
+        ADM --> UC9
+        ADM --> UC10
+        ADM --> UC11
+        ADM --> UC12
+        ADM --> UC13
+    end
+
+    subgraph CloudLayer ["4. Cloud Infrastructure Layer"]
+        direction TB
+        EXT_CF["Cloudflare Edge CDN"]
+        EXT_AI["Google Gemini 1.5 Flash AI"]
+    end
+
+    UC3 -. "CDN Image Cache" .-> EXT_CF
+    UC8 -. "CDN Resolution Proof" .-> EXT_CF
+    UC12 -. "Safety Assessment" .-> EXT_AI
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- 2. Swimlane Pane -->
+                <div id="siaPane-swimlane" class="hidden space-y-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wider">System Flow Diagram (Cross-Functional Swimlanes & Pools)</h4>
+                            <p class="text-[11px] text-slate-500">Traces handoffs across Resident PWA, Cloudflare Edge Worker, Supabase Platform, and Admin/Tanod Desk.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg font-medium border border-slate-200 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>Scroll to Zoom • Drag to Pan</span>
+                            <button onclick="zoomSia('swimlane', 1.2)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button onclick="zoomSia('swimlane', 0.8)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <button onclick="resetZoomSia('swimlane')" class="px-2 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold flex items-center justify-center text-slate-700 shadow-xs">Reset</button>
+                            <span class="text-[10px] bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200">Cross-Functional Handoffs</span>
+                        </div>
+                    </div>
+                    <div id="siaWrapper-swimlane" class="sia-panzoom-container bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[650px] relative cursor-grab select-none">
+                        <div id="siaCanvas-swimlane" class="sia-panzoom-canvas w-full h-full flex items-center justify-center transition-transform duration-75">
+                            <div class="mermaid text-center" id="mermaid-swimlane">
+sequenceDiagram
+    autonumber
+    actor Resident as Resident (Mobile PWA)
+    participant ClientApp as PWA Engine & LocalStorage
+    participant CF_Worker as Cloudflare Edge CDN Worker
+    participant Supabase as Supabase (PostgreSQL & Realtime)
+    actor AdminDesk as Barangay Admin / Tanod Desk
+
+    Resident->>ClientApp: Trigger SOS or Submit Incident with Photo/Video
+    alt Device is Offline (No Signal)
+        ClientApp->>ClientApp: Save to 'bayaniwatch_offline_queue' (Base64)
+        ClientApp-->>Resident: Show 'SAVED OFFLINE' Staged Badge
+    else Device is Online
+        ClientApp->>Supabase: Upload Media to bucket 'incident-photos'
+        Supabase-->>ClientApp: Return Supabase Storage URL
+        ClientApp->>ClientApp: Rewrite to Cloudflare Worker URL
+        ClientApp->>Supabase: Insert record into 'incidents' / 'sos_alerts'
+        ClientApp->>Supabase: Broadcast 'sos_trigger' via WebSocket Room
+    end
+
+    Supabase->>AdminDesk: Push Realtime Broadcast Event
+    AdminDesk->>AdminDesk: Play Siren Alarm ('alarm.mp3') & Show Red Banner
+    AdminDesk->>AdminDesk: Plot Dynamic Marker on GIS Leaflet Map
+
+    AdminDesk->>CF_Worker: Request Incident Evidence Media
+    alt Edge Cache Hit
+        CF_Worker-->>AdminDesk: Serve Media from Cloudflare Cache (0 KB Egress)
+    else Edge Cache Miss
+        CF_Worker->>Supabase: Fetch Origin Media File Once
+        CF_Worker->>CF_Worker: Store in Edge RAM/SSD (TTL: 30 Days)
+        CF_Worker-->>AdminDesk: Return Media Stream to Officer
+    end
+
+    AdminDesk->>ClientApp: Set Status to 'Resolved' + Resolution Notes
+    ClientApp->>Supabase: Update status & write to 'log_trails' table
+    Supabase-->>Resident: Status Updates on Resident Blotter Feed
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- 3. ERD Pane -->
+                <div id="siaPane-erd" class="hidden space-y-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wider">Entity Relationship Diagram (ERD & Database Schema)</h4>
+                            <p class="text-[11px] text-slate-500">Crow's foot ERD detailing PostgreSQL schema, primary/foreign keys, and cardinalities.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg font-medium border border-slate-200 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>Scroll to Zoom • Drag to Pan</span>
+                            <button onclick="zoomSia('erd', 1.2)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button onclick="zoomSia('erd', 0.8)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <button onclick="resetZoomSia('erd')" class="px-2 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold flex items-center justify-center text-slate-700 shadow-xs">Reset</button>
+                            <span class="text-[10px] bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-bold border border-indigo-200">PostgreSQL Schema</span>
+                        </div>
+                    </div>
+                    <div id="siaWrapper-erd" class="sia-panzoom-container bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[650px] relative cursor-grab select-none">
+                        <div id="siaCanvas-erd" class="sia-panzoom-canvas w-full h-full flex items-center justify-center transition-transform duration-75">
+                            <div class="mermaid text-center" id="mermaid-erd">
+erDiagram
+    USERS ||--o{ INCIDENTS : "submits"
+    USERS ||--o{ SOS_ALERTS : "triggers"
+    USERS ||--o{ LOG_TRAILS : "generates"
+    USERS ||--o{ PASSWORD_RESETS : "requests"
+    USERS ||--o{ ANNOUNCEMENTS : "publishes"
+
+    USERS {
+        uuid user_id PK
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        varchar full_name
+        varchar contact_number
+        varchar role
+        boolean is_active
+        boolean is_locked
+        integer failed_attempts
+        timestamp lockout_until
+        timestamp created_at
+    }
+
+    INCIDENTS {
+        bigserial incident_id PK
+        uuid user_id FK
+        varchar title
+        varchar category
+        text description
+        varchar location_address
+        numeric latitude
+        numeric longitude
+        varchar status
+        varchar image_url
+        boolean is_anonymous
+        text resolution_notes
+        varchar resolution_image_url
+        timestamp reported_at
+    }
+
+    SOS_ALERTS {
+        bigserial sos_id PK
+        uuid user_id FK
+        varchar category
+        text description
+        numeric latitude
+        numeric longitude
+        varchar media_url
+        varchar media_type
+        varchar status
+        timestamp triggered_at
+    }
+
+    LOG_TRAILS {
+        bigserial log_id PK
+        uuid user_id FK
+        varchar username
+        varchar affected_module
+        text action
+        varchar ip_address
+        varchar result
+        timestamp timestamp
+    }
+
+    ANNOUNCEMENTS {
+        bigserial announcement_id PK
+        uuid created_by FK
+        varchar title
+        text content
+        varchar category
+        boolean is_urgent
+        timestamp created_at
+    }
+
+    PASSWORD_RESETS {
+        bigserial reset_id PK
+        uuid user_id FK
+        varchar otp_code
+        boolean is_used
+        timestamp expires_at
+        timestamp created_at
+    }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- 4. Flowchart Pane -->
+                <div id="siaPane-flowchart" class="hidden space-y-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wider">System Flowchart (End-to-End Decision Logic)</h4>
+                            <p class="text-[11px] text-slate-500">Security authentication, 3-attempt lockout, 15-minute inactivity, and offline queueing logic.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg font-medium border border-slate-200 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>Scroll to Zoom • Drag to Pan</span>
+                            <button onclick="zoomSia('flowchart', 1.2)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button onclick="zoomSia('flowchart', 0.8)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <button onclick="resetZoomSia('flowchart')" class="px-2 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold flex items-center justify-center text-slate-700 shadow-xs">Reset</button>
+                            <span class="text-[10px] bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-bold border border-amber-200">ISO Standard Flowchart</span>
+                        </div>
+                    </div>
+                    <div id="siaWrapper-flowchart" class="sia-panzoom-container bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[650px] relative cursor-grab select-none">
+                        <div id="siaCanvas-flowchart" class="sia-panzoom-canvas w-full h-full flex items-center justify-center transition-transform duration-75">
+                            <div class="mermaid text-center" id="mermaid-flowchart">
+flowchart TD
+    START([User Launches BayaniWatch PWA]) --> AUTH_CHECK{Session Exists?}
+    
+    AUTH_CHECK -- No --> LOGIN_SCREEN[/Enter Username & Password/]
+    LOGIN_SCREEN --> VAL_CREDS{Validate Credentials with SHA-256?}
+    
+    VAL_CREDS -- Invalid --> INC_FAIL[Increment Failed Counter]
+    INC_FAIL --> ATTEMPTS_CHECK{Failed Attempts >= 3?}
+    ATTEMPTS_CHECK -- Yes --> LOCK_ACC[Lock Account with Progressive Timer & Require CAPTCHA]
+    LOCK_ACC --> LOG_FAIL[Write FAIL event to Security Log Trail]
+    LOG_FAIL --> LOGIN_SCREEN
+    ATTEMPTS_CHECK -- No --> DISP_REMAIN[/Show Remaining Attempts/] --> LOGIN_SCREEN
+    
+    VAL_CREDS -- Valid --> RESET_ATTEMPTS[Reset Failed Counter to 0]
+    RESET_ATTEMPTS --> ROLE_BRANCH{Evaluate User Role}
+    
+    ROLE_BRANCH -- Admin / Tanod --> ADMIN_DASH[Load Admin Command Center & GIS Map]
+    ROLE_BRANCH -- Resident --> RES_DASH[Load Resident Blotter & SOS]
+    AUTH_CHECK -- Yes --> ROLE_BRANCH
+
+    RES_DASH --> INACTIVITY{15 Mins Inactivity?}
+    ADMIN_DASH --> INACTIVITY
+    INACTIVITY -- Yes --> AUTO_LOGOUT[Show Session Warning -> Auto Logout]
+    AUTO_LOGOUT --> START
+
+    RES_DASH --> USER_ACTION{Select Action}
+    USER_ACTION -- File Incident / Trigger SOS --> CAPTURE_MEDIA[/Capture Photo or 5s Video/]
+    CAPTURE_MEDIA --> NET_CHECK{Network Online?}
+    
+    NET_CHECK -- Offline --> LOCAL_STAGE[Enqueue to 'bayaniwatch_offline_queue']
+    LOCAL_STAGE --> LOCAL_FEED[/Render in Blotter with 'Offline Staged' Badge/]
+    
+    NET_CHECK -- Online --> UPLOAD_MEDIA[Upload Media to Supabase Storage]
+    UPLOAD_MEDIA --> CDN_PROXY[Transform URL to Cloudflare Edge Worker URL]
+    CDN_PROXY --> DB_INSERT[(Insert Record into PostgreSQL)]
+    DB_INSERT --> REALTIME_BC[Broadcast SOS Event on WebSocket Channel]
+    
+    REALTIME_BC --> SIREN[Trigger Audible Siren on Officer Terminals]
+    SIREN --> PLOT_GIS[Plot Pin on GIS Leaflet Map]
+
+    PLOT_GIS --> DISPATCH[Tanod Responds to Scene]
+    DISPATCH --> RESOLVE_INC[/Officer Enters Resolution Summary & Proof/]
+    RESOLVE_INC --> UPDATE_DB[(Update Status = 'Resolved')]
+    UPDATE_DB --> AUDIT_LOG[(Append Entry to 'log_trails' Table)]
+    AUDIT_LOG --> END_NODE([Cycle Complete])
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- 5. Network Diagram Pane -->
+                <div id="siaPane-network" class="hidden space-y-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <h4 class="text-xs font-bold text-navy uppercase tracking-wider">Network Architecture Diagram (Physical & Logical Flow)</h4>
+                            <p class="text-[11px] text-slate-500">Shows communication paths across Client Devices, Cloudflare Workers, Supabase Cluster, and Gemini AI.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg font-medium border border-slate-200 hidden sm:inline"><i class="fa-solid fa-computer-mouse mr-1"></i>Scroll to Zoom • Drag to Pan</span>
+                            <button onclick="zoomSia('network', 1.2)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                            <button onclick="zoomSia('network', 0.8)" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold flex items-center justify-center text-slate-700 shadow-xs"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                            <button onclick="resetZoomSia('network')" class="px-2 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold flex items-center justify-center text-slate-700 shadow-xs">Reset</button>
+                            <span class="text-[10px] bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-bold border border-purple-200">Cloud Perimeter & Core</span>
+                        </div>
+                    </div>
+                    <div id="siaWrapper-network" class="sia-panzoom-container bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[650px] relative cursor-grab select-none">
+                        <div id="siaCanvas-network" class="sia-panzoom-canvas w-full h-full flex items-center justify-center transition-transform duration-75">
+                            <div class="mermaid text-center" id="mermaid-network">
+flowchart TB
+    subgraph ClientZone ["1. Client Endpoints (Edge Access)"]
+        RES_MOBILE["Resident Smartphone (PWA)"]
+        ADMIN_PC["Barangay Hall Workstation"]
+        TANOD_DEV["Barangay Tanod Mobile"]
+    end
+
+    subgraph PerimeterNetwork ["2. Edge & Acceleration Layer"]
+        CF_DNS["Cloudflare DNS & Security"]
+        CF_WORKER["Cloudflare CDN Worker Cache Proxy"]
+        CF_CACHE["Edge Cache Store RAM / SSD"]
+    end
+
+    subgraph CloudInfrastructure ["3. Cloud Backend (Supabase Cluster)"]
+        API_GATEWAY["Kong API Gateway Port 443"]
+        AUTH_SVC["GoTrue Auth Engine"]
+        REST_ENGINE["PostgREST API Engine"]
+        REALTIME_SVC["Realtime WebSockets"]
+        PG_DB["PostgreSQL 15 Database (Encrypted)"]
+        STORAGE_BUCKET["S3 Object Storage (incident-photos)"]
+    end
+
+    subgraph ExternalAPIs ["4. Cognitive & Map Services"]
+        GEMINI_AI["Google Gemini 1.5 Flash AI"]
+        OSM_TILES["OpenStreetMap Tile CDN"]
+    end
+
+    RES_MOBILE --> CF_DNS
+    ADMIN_PC --> CF_DNS
+    TANOD_DEV --> CF_DNS
+
+    CF_DNS --> CF_WORKER
+    CF_WORKER --- CF_CACHE
+    CF_WORKER --> STORAGE_BUCKET
+
+    CF_DNS --> API_GATEWAY
+    API_GATEWAY --> AUTH_SVC
+    API_GATEWAY --> REST_ENGINE
+    API_GATEWAY --> REALTIME_SVC
+    REST_ENGINE --- PG_DB
+    AUTH_SVC --- PG_DB
+
+    REALTIME_SVC -.-> ADMIN_PC
+    REALTIME_SVC -.-> TANOD_DEV
+
+    ADMIN_PC --> GEMINI_AI
+    ADMIN_PC --> OSM_TILES
+    RES_MOBILE --> OSM_TILES
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2191,6 +2682,489 @@ ${incidentsSummary}`;
             updateRule(`${prefix}Spec`, hasSpecial, 'Special (!@#$)');
 
             return hasLength && hasUpperLower && hasNumber && hasSpecial;
+        }
+
+        // --- SIA ARCHITECTURE MODAL CONTROLLER & PAN/ZOOM ENGINE ---
+        let renderedSiaTabs = {};
+        const siaPanZoomState = {
+            usecase: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 },
+            swimlane: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 },
+            erd: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 },
+            flowchart: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 },
+            network: { scale: 1, x: 0, y: 0, isDragging: false, startX: 0, startY: 0 }
+        };
+
+        function updateSiaTransform(tabKey) {
+            const canvas = document.getElementById(`siaCanvas-${tabKey}`);
+            if (!canvas) return;
+            const st = siaPanZoomState[tabKey];
+            canvas.style.transform = `translate(${st.x}px, ${st.y}px) scale(${st.scale})`;
+        }
+
+        function zoomSia(tabKey, factor) {
+            const st = siaPanZoomState[tabKey];
+            st.scale = Math.min(Math.max(st.scale * factor, 0.4), 4.0);
+            updateSiaTransform(tabKey);
+        }
+
+        function resetZoomSia(tabKey) {
+            const st = siaPanZoomState[tabKey];
+            st.scale = 1;
+            st.x = 0;
+            st.y = 0;
+            updateSiaTransform(tabKey);
+        }
+
+        function initSiaPanZoomHandlers(tabKey) {
+            const wrapper = document.getElementById(`siaWrapper-${tabKey}`);
+            if (!wrapper || wrapper.dataset.panzoomBound) return;
+            wrapper.dataset.panzoomBound = "true";
+
+            const st = siaPanZoomState[tabKey];
+
+            // Mouse Drag Pan
+            wrapper.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return;
+                st.isDragging = true;
+                st.startX = e.clientX - st.x;
+                st.startY = e.clientY - st.y;
+                wrapper.style.cursor = 'grabbing';
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!st.isDragging) return;
+                st.x = e.clientX - st.startX;
+                st.y = e.clientY - st.startY;
+                updateSiaTransform(tabKey);
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (st.isDragging) {
+                    st.isDragging = false;
+                    wrapper.style.cursor = 'grab';
+                }
+            });
+
+            // Touch Screen Drag Pan & Pinch Zoom Support for Mobile / Tablets
+            let initialDistance = 0;
+            let initialScale = 1;
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    st.isDragging = true;
+                    st.startX = e.touches[0].clientX - st.x;
+                    st.startY = e.touches[0].clientY - st.y;
+                } else if (e.touches.length === 2) {
+                    st.isDragging = false;
+                    initialDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialScale = st.scale;
+                }
+            }, { passive: true });
+
+            wrapper.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && st.isDragging) {
+                    st.x = e.touches[0].clientX - st.startX;
+                    st.y = e.touches[0].clientY - st.startY;
+                    updateSiaTransform(tabKey);
+                } else if (e.touches.length === 2 && initialDistance > 0) {
+                    const currentDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const factor = currentDist / initialDistance;
+                    st.scale = Math.min(Math.max(initialScale * factor, 0.4), 4.0);
+                    updateSiaTransform(tabKey);
+                }
+            }, { passive: true });
+
+            wrapper.addEventListener('touchend', () => {
+                st.isDragging = false;
+                initialDistance = 0;
+            });
+
+            // Mouse Wheel Zoom
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 1.15 : 0.85;
+                zoomSia(tabKey, delta);
+            }, { passive: false });
+        }
+
+        function openSiaModal() {
+            const modal = document.getElementById('siaModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            switchSiaTab('usecase');
+        }
+
+        function closeSiaModal() {
+            const modal = document.getElementById('siaModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function switchSiaTab(tabKey) {
+            const tabs = ['usecase', 'swimlane', 'erd', 'flowchart', 'network'];
+            tabs.forEach(t => {
+                const pane = document.getElementById(`siaPane-${t}`);
+                const btn = document.getElementById(`siaTabBtn-${t}`);
+                if (pane) {
+                    if (t === tabKey) {
+                        pane.classList.remove('hidden');
+                    } else {
+                        pane.classList.add('hidden');
+                    }
+                }
+                if (btn) {
+                    if (t === tabKey) {
+                        btn.className = "px-3 py-2 rounded-xl bg-white text-navy shadow-xs border border-slate-200 whitespace-nowrap flex items-center gap-1.5 font-bold";
+                    } else {
+                        btn.className = "px-3 py-2 rounded-xl text-slate-600 hover:bg-white/60 whitespace-nowrap flex items-center gap-1.5 font-bold";
+                    }
+                }
+            });
+
+            initSiaPanZoomHandlers(tabKey);
+
+            // Trigger Mermaid renderer on first tab display
+            if (window.mermaid && !renderedSiaTabs[tabKey]) {
+                setTimeout(() => {
+                    const el = document.getElementById(`mermaid-${tabKey}`);
+                    if (el) {
+                        try {
+                            mermaid.run({ nodes: [el] });
+                            renderedSiaTabs[tabKey] = true;
+                        } catch (e) {
+                            console.log("Mermaid render notice:", e);
+                        }
+                    }
+                }, 50);
+            }
+        }
+
+        // Programmatic In-Memory Download for Full SIA Technical Documentation
+        function downloadSiaDocumentation() {
+            const markdownContent = `# SYSTEM INTEGRATION AND ARCHITECTURE (SIA) & IAS
+## Final Project Technical Documentation & Architecture Specification
+
+**System Title:** BayaniWatch: Barangay Danhug Digital Incident Blotter, Emergency SOS Telemetry & GIS Command System  
+**Institution:** College of Information and Communications Technology  
+**Course Code:** System Integration and Architecture 1 / Information Assurance & Security 1  
+**Target Deployment:** Barangay Danhug Local Government Unit (LGU), Ormoc City  
+
+---
+
+### Table of Contents
+1. System Overview & Architecture Summary
+2. Diagram 1: Use Case Diagram (System Actors & Functional Boundaries)
+3. Diagram 2: System Flow Diagram (Cross-Functional Swimlanes & Pools)
+4. Diagram 3: Entity Relationship Diagram (ERD & Database Schema)
+5. Diagram 4: System Flowchart (Detailed Process, Decision & Storage Logic)
+6. Diagram 5: Network Diagram (Physical & Logical Network Architecture)
+7. System Integration & IAS Security Compliance Matrix
+
+---
+
+## 1. Use Case Diagram (System Users & Functionalities)
+\`\`\`mermaid
+flowchart LR
+    subgraph Actors ["System Actors"]
+        RES["Resident / Community Member"]
+        TAN["Barangay Tanod / Responder"]
+        ADM["Barangay Administrator"]
+        EXT_AI["Google Gemini AI API"]
+        EXT_CF["Cloudflare Edge CDN"]
+    end
+
+    subgraph Boundaries ["BayaniWatch System Boundary"]
+        UC1(["Register & Verify via OTP"])
+        UC2(["Authenticate & Session Login"])
+        UC3(["File Incident Blotter with Media"])
+        UC4(["Trigger Realtime SOS Telemetry"])
+        UC5(["View GIS Spatial Map & Feed"])
+        UC6(["Receive Siren & Dispatch Alerts"])
+        UC7(["Update Status (In Progress)"])
+        UC8(["Resolve Incident with Proof Media"])
+        UC9(["Post Community Advisories"])
+        UC10(["Manage User Accounts & RBAC"])
+        UC11(["Review Security Audit Trails"])
+        UC12(["Execute AI Risk Analysis Scan"])
+        UC13(["Execute Database Backup & Restore"])
+        UC14(["Offline Staging & Synchronization"])
+    end
+
+    RES --> UC1
+    RES --> UC2
+    RES --> UC3
+    RES --> UC4
+    RES --> UC5
+    RES --> UC14
+
+    TAN --> UC2
+    TAN --> UC5
+    TAN --> UC6
+    TAN --> UC7
+
+    ADM --> UC2
+    ADM --> UC5
+    ADM --> UC6
+    ADM --> UC7
+    ADM --> UC8
+    ADM --> UC9
+    ADM --> UC10
+    ADM --> UC11
+    ADM --> UC12
+    ADM --> UC13
+
+    UC3 -.-> EXT_CF
+    UC8 -.-> EXT_CF
+    UC12 -.-> EXT_AI
+\`\`\`
+
+---
+
+## 2. System Flow Diagram (Swimlanes & Pools)
+\`\`\`mermaid
+sequenceDiagram
+    autonumber
+    actor Resident as Resident (Mobile PWA)
+    participant ClientApp as PWA Engine & LocalStorage
+    participant CF_Worker as Cloudflare Edge CDN Worker
+    participant Supabase as Supabase (PostgreSQL & Realtime)
+    actor AdminDesk as Barangay Admin / Tanod Desk
+
+    Resident->>ClientApp: Trigger SOS or Submit Incident with Photo/Video
+    alt Device is Offline (No Signal)
+        ClientApp->>ClientApp: Save to 'bayaniwatch_offline_queue' (Base64)
+        ClientApp-->>Resident: Show 'SAVED OFFLINE' Staged Badge
+    else Device is Online
+        ClientApp->>Supabase: Upload Media to bucket 'incident-photos'
+        Supabase-->>ClientApp: Return Supabase Storage URL
+        ClientApp->>ClientApp: Rewrite to Cloudflare Worker URL
+        ClientApp->>Supabase: Insert record into 'incidents' / 'sos_alerts'
+        ClientApp->>Supabase: Broadcast 'sos_trigger' via WebSocket Room
+    end
+
+    Supabase->>AdminDesk: Push Realtime Broadcast Event
+    AdminDesk->>AdminDesk: Play Siren Alarm ('alarm.mp3') & Show Red Banner
+    AdminDesk->>AdminDesk: Plot Dynamic Marker on GIS Leaflet Map
+
+    AdminDesk->>CF_Worker: Request Incident Evidence Media
+    alt Edge Cache Hit
+        CF_Worker-->>AdminDesk: Serve Media from Cloudflare Cache (0 KB Egress)
+    else Edge Cache Miss
+        CF_Worker->>Supabase: Fetch Origin Media File Once
+        CF_Worker->>CF_Worker: Store in Edge RAM/SSD (TTL: 30 Days)
+        CF_Worker-->>AdminDesk: Return Media Stream to Officer
+    end
+
+    AdminDesk->>ClientApp: Set Status to 'Resolved' + Resolution Notes
+    ClientApp->>Supabase: Update status & write to 'log_trails' table
+    Supabase-->>Resident: Status Updates on Resident Blotter Feed
+\`\`\`
+
+---
+
+## 3. Entity Relationship Diagram (ERD)
+\`\`\`mermaid
+erDiagram
+    USERS ||--o{ INCIDENTS : "submits"
+    USERS ||--o{ SOS_ALERTS : "triggers"
+    USERS ||--o{ LOG_TRAILS : "generates"
+    USERS ||--o{ PASSWORD_RESETS : "requests"
+    USERS ||--o{ ANNOUNCEMENTS : "publishes"
+
+    USERS {
+        uuid user_id PK
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        varchar full_name
+        varchar contact_number
+        varchar role
+        boolean is_active
+        boolean is_locked
+        integer failed_attempts
+        timestamp lockout_until
+        timestamp created_at
+    }
+
+    INCIDENTS {
+        bigserial incident_id PK
+        uuid user_id FK
+        varchar title
+        varchar category
+        text description
+        varchar location_address
+        numeric latitude
+        numeric longitude
+        varchar status
+        varchar image_url
+        boolean is_anonymous
+        text resolution_notes
+        varchar resolution_image_url
+        timestamp reported_at
+    }
+
+    SOS_ALERTS {
+        bigserial sos_id PK
+        uuid user_id FK
+        varchar category
+        text description
+        numeric latitude
+        numeric longitude
+        varchar media_url
+        varchar media_type
+        varchar status
+        timestamp triggered_at
+    }
+
+    LOG_TRAILS {
+        bigserial log_id PK
+        uuid user_id FK
+        varchar username
+        varchar affected_module
+        text action
+        varchar ip_address
+        varchar result
+        timestamp timestamp
+    }
+
+    ANNOUNCEMENTS {
+        bigserial announcement_id PK
+        uuid created_by FK
+        varchar title
+        text content
+        varchar category
+        boolean is_urgent
+        timestamp created_at
+    }
+
+    PASSWORD_RESETS {
+        bigserial reset_id PK
+        uuid user_id FK
+        varchar otp_code
+        boolean is_used
+        timestamp expires_at
+        timestamp created_at
+    }
+\`\`\`
+
+---
+
+## 4. System Flowchart
+\`\`\`mermaid
+flowchart TD
+    START([User Launches BayaniWatch PWA]) --> AUTH_CHECK{Session Exists?}
+    
+    AUTH_CHECK -- No --> LOGIN_SCREEN[/Enter Username & Password/]
+    LOGIN_SCREEN --> VAL_CREDS{Validate Credentials with SHA-256?}
+    
+    VAL_CREDS -- Invalid --> INC_FAIL[Increment Failed Counter]
+    INC_FAIL --> ATTEMPTS_CHECK{Failed Attempts >= 3?}
+    ATTEMPTS_CHECK -- Yes --> LOCK_ACC[Lock Account with Progressive Timer & Require CAPTCHA]
+    LOCK_ACC --> LOG_FAIL[Write FAIL event to Security Log Trail]
+    LOG_FAIL --> LOGIN_SCREEN
+    ATTEMPTS_CHECK -- No --> DISP_REMAIN[/Show Remaining Attempts/] --> LOGIN_SCREEN
+    
+    VAL_CREDS -- Valid --> RESET_ATTEMPTS[Reset Failed Counter to 0]
+    RESET_ATTEMPTS --> ROLE_BRANCH{Evaluate User Role}
+    
+    ROLE_BRANCH -- Admin / Tanod --> ADMIN_DASH[Load Admin Command Center & GIS Map]
+    ROLE_BRANCH -- Resident --> RES_DASH[Load Resident Blotter & SOS]
+    AUTH_CHECK -- Yes --> ROLE_BRANCH
+
+    RES_DASH --> INACTIVITY{15 Mins Inactivity?}
+    ADMIN_DASH --> INACTIVITY
+    INACTIVITY -- Yes --> AUTO_LOGOUT[Show Session Warning -> Auto Logout]
+    AUTO_LOGOUT --> START
+
+    RES_DASH --> USER_ACTION{Select Action}
+    USER_ACTION -- File Incident / Trigger SOS --> CAPTURE_MEDIA[/Capture Photo or 5s Video/]
+    CAPTURE_MEDIA --> NET_CHECK{Network Online?}
+    
+    NET_CHECK -- Offline --> LOCAL_STAGE[Enqueue to 'bayaniwatch_offline_queue']
+    LOCAL_STAGE --> LOCAL_FEED[/Render in Blotter with 'Offline Staged' Badge/]
+    
+    NET_CHECK -- Online --> UPLOAD_MEDIA[Upload Media to Supabase Storage]
+    UPLOAD_MEDIA --> CDN_PROXY[Transform URL to Cloudflare Edge Worker URL]
+    CDN_PROXY --> DB_INSERT[(Insert Record into PostgreSQL)]
+    DB_INSERT --> REALTIME_BC[Broadcast SOS Event on WebSocket Channel]
+    
+    REALTIME_BC --> SIREN[Trigger Audible Siren on Officer Terminals]
+    SIREN --> PLOT_GIS[Plot Pin on GIS Leaflet Map]
+
+    PLOT_GIS --> DISPATCH[Tanod Responds to Scene]
+    DISPATCH --> RESOLVE_INC[/Officer Enters Resolution Summary & Proof/]
+    RESOLVE_INC --> UPDATE_DB[(Update Status = 'Resolved')]
+    UPDATE_DB --> AUDIT_LOG[(Append Entry to 'log_trails' Table)]
+    AUDIT_LOG --> END_NODE([Cycle Complete])
+\`\`\`
+
+---
+
+## 5. Network Architecture Diagram
+\`\`\`mermaid
+graph TB
+    subgraph ClientZone ["Client Endpoints (Edge Access)"]
+        RES_MOBILE["Resident Smartphone (PWA / Mobile)"]
+        ADMIN_PC["Barangay Hall Admin Workstation"]
+        TANOD_DEV["Barangay Tanod Patrol Unit"]
+    end
+
+    subgraph PerimeterNetwork ["Perimeter & Edge Acceleration Layer"]
+        CF_DNS["Cloudflare DNS & DDoS Protection"]
+        CF_WORKER["Cloudflare Edge Workers (Reverse Proxy & CDN)<br/>supabase-storage-cache.pilapilvonpierre9.workers.dev"]
+        CF_CACHE[("Cloudflare Global Cache Store (RAM / SSD)")]
+    end
+
+    subgraph CloudInfrastructure ["Cloud Backend Infrastructure (Supabase Cluster)"]
+        API_GATEWAY["Kong API Gateway (Port 443 HTTPS / WSS)"]
+        AUTH_SVC["Supabase GoTrue Auth Engine"]
+        REST_ENGINE["PostgREST API Engine"]
+        REALTIME_SVC["Supabase Realtime WebSockets"]
+        PG_DB[("PostgreSQL 15 Database Cluster<br/>(RLS & Storage Encryption)")]
+        STORAGE_BUCKET[("Supabase S3 Object Storage<br/>Bucket: 'incident-photos'")]
+    end
+
+    subgraph ExternalAPIs ["Cognitive & GIS Map Services"]
+        GEMINI_AI["Google Gemini 1.5 Flash AI API"]
+        OSM_TILES["OpenStreetMap / Leaflet Tile CDN"]
+    end
+
+    RES_MOBILE -- "HTTPS / WSS (TLS 1.3)" --> CF_DNS
+    ADMIN_PC -- "HTTPS / WSS (TLS 1.3)" --> CF_DNS
+    TANOD_DEV -- "HTTPS / WSS (TLS 1.3)" --> CF_DNS
+
+    CF_DNS --> CF_WORKER
+    CF_WORKER <--> CF_CACHE
+    CF_WORKER -- "Cache Miss: Forward to Origin" --> STORAGE_BUCKET
+
+    CF_DNS -- "REST Queries & Auth Requests" --> API_GATEWAY
+    API_GATEWAY --> AUTH_SVC
+    API_GATEWAY --> REST_ENGINE
+    API_GATEWAY --> REALTIME_SVC
+    REST_ENGINE <--> PG_DB
+    AUTH_SVC <--> PG_DB
+
+    REALTIME_SVC -. "WSS Bi-directional Push" .-> ADMIN_PC
+    REALTIME_SVC -. "WSS Bi-directional Push" .-> TANOD_DEV
+
+    ADMIN_PC -- "AI Risk Analysis Prompts" --> GEMINI_AI
+    ADMIN_PC & RES_MOBILE -- "Map Tiles Fetch" --> OSM_TILES
+\`\`\`
+`;
+            const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'BayaniWatch_SIA_Documentation.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAppToast('DOWNLOAD COMPLETE', 'BayaniWatch SIA Architecture Document downloaded.');
         }
 
         // --- IAS SECTION H: DATABASE BACKUP AND RECOVERY ENGINE ---
