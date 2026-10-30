@@ -1694,6 +1694,12 @@
         document.addEventListener('touchstart', unlockMobileAudio, { once: true });
 
         function startSirenAlarm() {
+            // Strictly guard alarm: Only Barangay Admins and Tanods on duty hear sirens
+            if (!currentUser) return;
+            const role = (currentUser.role || '').toLowerCase();
+            if (role !== 'admin' && role !== 'tanod') {
+                return;
+            }
             sosAudio.play().catch(e => console.log("Autoplay prevented or missing file:", e));
         }
 
@@ -3896,8 +3902,14 @@ ${incidentsSummary}`;
         }
 
         function checkActiveSos() {
+            if (!currentUser) return;
+            const role = (currentUser.role || '').toLowerCase();
+            if (role !== 'admin' && role !== 'tanod') {
+                dismissSosBanner();
+                return;
+            }
             const activeSos = localStorage.getItem('bayaniwatch_sos_active');
-            if (activeSos && currentUser) {
+            if (activeSos) {
                 displayRealtimeSosBanner(JSON.parse(activeSos));
             }
         }
