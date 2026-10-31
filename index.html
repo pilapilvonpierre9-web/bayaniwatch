@@ -1543,6 +1543,7 @@ flowchart TB
             </div>
         </div>
     </div>
+    </div>
 
     <!-- IAS SECTION H: DATABASE BACKUP AND RECOVERY MODAL -->
     <div id="backupRestoreModal" class="hidden fixed inset-0 bg-navy/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -6004,14 +6005,6 @@ graph TB
             }
         }
 
-        function blobToBase64(blob) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        }
 
         async function submitNewIncident(e) {
             if (e) e.preventDefault();
