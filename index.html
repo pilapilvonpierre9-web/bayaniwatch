@@ -3612,15 +3612,36 @@ graph TB
             realtimeChannel.on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'sos_alerts' },
-                (payload) => {
+                async (payload) => {
                     const newSos = payload.new;
                     if (newSos && newSos.status === 'ACTIVE') {
                         const latVal = parseFloat(newSos.latitude) || 10.9613;
                         const lngVal = parseFloat(newSos.longitude) || 124.6483;
+                        
+                        let sosTitle = '🚨 CRITICAL SOS EMERGENCY';
+                        let sosDesc = newSos.details || newSos.description || '';
+                        
+                        if (!sosDesc) {
+                            try {
+                                const { data: incMatch } = await supabase
+                                    .from('incidents')
+                                    .select('title, category, description')
+                                    .order('incident_id', { ascending: false })
+                                    .limit(1);
+                                if (incMatch && incMatch.length > 0 && incMatch[0].title.includes('SOS')) {
+                                    sosTitle = incMatch[0].category || sosTitle;
+                                    sosDesc = incMatch[0].description || 'Immediate emergency assistance requested!';
+                                }
+                            } catch (e) {
+                                console.warn('Could not fetch incident description for SOS alert:', e);
+                            }
+                        }
+                        if (!sosDesc) sosDesc = 'Immediate emergency assistance requested!';
+
                         displayRealtimeSosBanner({
                             sender: newSos.username || 'Resident',
-                            title: '🚨 CRITICAL SOS EMERGENCY',
-                            description: newSos.details || newSos.description || 'Immediate assistance requested!',
+                            title: sosTitle,
+                            description: sosDesc,
                             address: `Purok near Lat: ${latVal.toFixed(4)}, Lng: ${lngVal.toFixed(4)}`,
                             lat: latVal,
                             lng: lngVal,
@@ -4876,7 +4897,7 @@ graph TB
             }
         }
 
-        function checkActiveSos() {
+        async function checkActiveSos() {
             if (!currentUser) return;
             const role = (currentUser.role || '').toLowerCase();
             if (role !== 'admin' && role !== 'tanod') {
@@ -4885,7 +4906,58 @@ graph TB
             }
             const activeSos = localStorage.getItem('bayaniwatch_sos_active');
             if (activeSos) {
-                displayRealtimeSosBanner(JSON.parse(activeSos));
+                try {
+                    displayRealtimeSosBanner(JSON.parse(activeSos));
+                    return;
+                } catch (e) {}
+            }
+
+            // If no local banner was stored, check remote active SOS alerts
+            if (navigator.onLine) {
+                try {
+                    const { data: activeList } = await supabase
+                        .from('sos_alerts')
+                        .select('*')
+                        .eq('status', 'ACTIVE')
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (activeList && activeList.length > 0) {
+                        const topSos = activeList[0];
+                        const latVal = parseFloat(topSos.latitude) || 10.9613;
+                        const lngVal = parseFloat(topSos.longitude) || 124.6483;
+                        
+                        let sosTitle = '🚨 CRITICAL SOS EMERGENCY';
+                        let sosDesc = topSos.details || topSos.description || '';
+                        
+                        try {
+                            const { data: incMatch } = await supabase
+                                .from('incidents')
+                                .select('title, category, description')
+                                .order('incident_id', { ascending: false })
+                                .limit(1);
+                            if (incMatch && incMatch.length > 0 && incMatch[0].title.includes('SOS')) {
+                                sosTitle = incMatch[0].category || sosTitle;
+                                sosDesc = incMatch[0].description || 'Immediate emergency assistance requested!';
+                            }
+                        } catch (e) {}
+                        if (!sosDesc) sosDesc = 'Immediate emergency assistance requested!';
+
+                        displayRealtimeSosBanner({
+                            sender: topSos.username || 'Resident',
+                            title: sosTitle,
+                            description: sosDesc,
+                            address: `Purok near Lat: ${latVal.toFixed(4)}, Lng: ${lngVal.toFixed(4)}`,
+                            lat: latVal,
+                            lng: lngVal,
+                            time: new Date(topSos.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            media_url: topSos.media_url,
+                            media_type: topSos.media_type
+                        });
+                    }
+                } catch (err) {
+                    console.warn("Could not query active SOS alerts:", err);
+                }
             }
         }
 
